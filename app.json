@@ -29,7 +29,8 @@
           "photosPermission": "Sprout needs to see the thing you want to buy.",
           "cameraPermission": "Sprout needs to see the thing you want to buy."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "scheme": "dontbuyit"
   }

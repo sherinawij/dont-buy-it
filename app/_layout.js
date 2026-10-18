@@ -66,6 +66,8 @@ export default function RootLayout() {
         <Stack.Screen name="debate/[id]" options={{ title: 'Sprout vs. You' }} />
         <Stack.Screen name="summary" options={{ title: 'Your week' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="achievements" options={{ title: 'Your wins' }} />
+        <Stack.Screen name="achievement/[key]" options={{ title: 'Share your win' }} />
       </Stack>
     </>
   );
