@@ -1,0 +1,6 @@
+# Never upload local secrets or test files to Vercel (env vars are set in the Vercel project instead).
+.env
+.env.*
+!.env.example
+node_modules
+test
