@@ -43,9 +43,12 @@ async function verifiedUser(req) {
   const header = req.headers?.authorization || req.headers?.Authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (!token) throw new HttpError(401, 'Sign in to see the leaderboard.');
+  // Load first, outside the try: a server setup problem must surface as its own clear 503,
+  // not be mistaken for an expired sign-in.
+  const { verifyIdToken } = await loadAdmin();
   let decoded;
   try {
-    decoded = await (await loadAdmin()).verifyIdToken(token);
+    decoded = await verifyIdToken(token);
   } catch {
     throw new HttpError(401, 'Your session expired. Please sign in again.');
   }
