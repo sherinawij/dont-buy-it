@@ -238,15 +238,30 @@ export default function Debate() {
     decideItem(id, { status: 'resisted', outcome: 'sprout_won' }).catch(() => {});
   }
 
-  function buyAnyway() {
+  async function buyAnyway() {
     decidedRef.current = true;
     setStatus('bought');
-    setWaiting(false);
-    // ONE dramatic line, then Sprout lets it go completely. Never any guilt for a genuine need.
+    setSuggested([]);
+    // ONE dramatic line, then Sprout lets it go. Never any guilt for a genuine need.
     const line = item.essential ? 'Good call. Take care of yourself! 💚' : 'I… I need a moment. *faints gracefully*';
     setMessages((m) => [...m, { role: 'sprout', text: line, mood: item.essential ? 'happy' : 'defeated' }]);
     decideItem(id, { status: 'bought', outcome: buyOutcome(item, conceded) }).catch(() => {});
-    leaveTimer.current = setTimeout(goBack, 1500);
+
+    // Essentials: approved, nothing more to say → back home.
+    if (item.essential) {
+      setWaiting(false);
+      leaveTimer.current = setTimeout(goBack, 1500);
+      return;
+    }
+
+    // Wants: the user stays in control, but we still show cheaper / lower-waste ways to get it.
+    // If Sprout already conceded, its alternatives are already on screen.
+    if (alternatives.length > 0) return setWaiting(false);
+    setWaiting(true);
+    // The server only returns alternatives on a conceded call; we use just the alternatives, not the reply.
+    const res = await chatWithSprout(await chatBody(messages, criteriaMet, turn, { conceded: true }));
+    setAlternatives(validAlternatives(res.alternatives));
+    setWaiting(false);
   }
 
   // ---------- Render ----------
@@ -345,7 +360,9 @@ export default function Debate() {
             {waiting && <TypingDots mood={mood} stage={stage} />}
             {alternatives.length > 0 && (
               <View style={{ marginTop: 10 }}>
-                <Text style={styles.altTitle}>Sprout’s (grudging) better ideas</Text>
+                <Text style={styles.altTitle}>
+                  {conceded ? 'Sprout’s (grudging) better ideas' : 'Before you check out: cheaper, lower-waste ways to get it'}
+                </Text>
                 {alternatives.map((a) => (
                   <AlternativeCard
                     key={a.type}
@@ -390,7 +407,7 @@ export default function Debate() {
       )}
       {lockNote && <Text style={[styles.note, { paddingHorizontal: 16, paddingTop: 6 }]}>{lockNote}</Text>}
 
-      {/* Exits — always visible while the item is undecided */}
+      {/* Exits — always visible while the item is undecided; afterwards, a calm wrap-up card */}
       <View style={[styles.footer, { paddingBottom: typing ? 8 : Math.max(insets.bottom, 12) }]}>
         {status === 'debating' && (
           <View style={styles.exits}>
@@ -406,6 +423,13 @@ export default function Debate() {
               <Button title="Share this win" onPress={() => router.replace(`/achievement/skipped_${id}`)} style={{ flex: 1 }} />
               <Button title="Back home" variant="secondary" onPress={goBack} style={{ flex: 1 }} />
             </View>
+          </Card>
+        )}
+        {status === 'bought' && !item.essential && (
+          <Card style={styles.win}>
+            <Text style={styles.winTitle}>Logged as bought</Text>
+            <Text style={styles.note}>No judgement. If you haven’t checked out yet, the options above could save money or waste.</Text>
+            <Button title="Back home" variant="secondary" onPress={goBack} />
           </Card>
         )}
       </View>

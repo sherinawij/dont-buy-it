@@ -18,7 +18,7 @@ Our society runs on consumerism: we keep buying things we don't truly need. That
 - It **escalates every round**, from alarm to pleading, bargaining, a full theatrical meltdown and then a last stand. It pokes holes in vague excuses ("'A lot'? Define 'a lot'.").
 - Only a **genuinely solid, specific argument** makes Sprout concede. When it does, it gives in dramatically and immediately pushes **lower-waste, cheaper alternatives**: buy used, refurbished, repair, borrow, rent, or an eco option.
 - **Genuine needs are never fought.** Food, medication, hygiene, safety gear, baby essentials and things you need for work or school get instant, warm approval.
-- **You stay in control.** "Don't buy it" and "Buy anyway" are always on screen. The app persuades, but it never blocks you, and it never guilt-trips you after a purchase.
+- **You stay in control.** "Don't buy it" and "Buy anyway" are always on screen. The app persuades, but it never blocks you, and it never guilt-trips you after a purchase. Even if you choose "Buy anyway", Sprout still shows cheaper, lower-waste ways to get it (used, refurbished, repair, borrow, rent).
 - Sprout **grows** (seed → sprout → small plant → bushy → flowering) as your **spending avoided** adds up and as you make positive decisions.
 
 ## Theme fit: financial resilience + sustainable consumption
