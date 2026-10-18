@@ -36,7 +36,9 @@ export async function fetchLeaderboard() {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(res.status === 401 || res.status === 403 ? data.error : 'The leaderboard is unavailable right now. Try again soon.');
+    // 401/403/503 carry a specific, safe message from our server (e.g. "Leaderboard query failed (...)").
+    const specific = [401, 403, 503].includes(res.status) && data.error;
+    throw new Error(specific || 'The leaderboard is unavailable right now. Try again soon.');
   }
   return data;
 }

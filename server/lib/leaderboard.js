@@ -14,12 +14,9 @@ let admin;
 async function loadAdmin() {
   if (admin) return admin;
   try {
-    const [{ AggregateField }, { adminDb, verifyIdToken }] = await Promise.all([
-      import('firebase-admin/firestore'),
-      import('./firebaseAdmin.js'),
-    ]);
+    const { adminDb, verifyIdToken } = await import('./firebaseAdmin.js');
     const db = adminDb(); // throws if FIREBASE_SERVICE_ACCOUNT is missing or invalid
-    admin = { AggregateField, db, verifyIdToken };
+    admin = { db, verifyIdToken };
     return admin;
   } catch (e) {
     console.error('Leaderboard setup failed:', e);
@@ -63,17 +60,21 @@ async function verifiedUser(req) {
 
 // Spending avoided for one person: the same number as the app's jar (src/calc.js totalSaved:
 // price ?? estimatedPrice over items they chose not to buy). Each item counts once.
-// Firestore adds it up for us (sum aggregation), so no individual items are downloaded,
-// and sum() skips anything that isn't a number. firestore.rules keeps new amounts valid.
+// One equality filter + two small fields: works with Firestore's automatic indexes (a sum
+// aggregation with filters needed a composite index the project doesn't have). Runs on the
+// server, so no items ever reach anyone's phone. Non-numbers (legacy data) count as 0.
+const MAX_ITEM = 1000000; // same cap as firestore.rules
+const amountOf = (d) => {
+  const v = Number(d.price ?? d.estimatedPrice ?? 0);
+  return Number.isFinite(v) && v > 0 ? Math.min(v, MAX_ITEM) : 0;
+};
 async function spendingAvoided(db, uid) {
-  const { AggregateField } = admin; // loaded by loadAdmin() before we get here
-  const resisted = db.collection('users').doc(uid).collection('items').where('status', '==', 'resisted');
-  const [priced, estimated] = await Promise.all([
-    resisted.aggregate({ total: AggregateField.sum('price') }).get(), // items with a price the user typed
-    resisted.where('price', '==', null).aggregate({ total: AggregateField.sum('estimatedPrice') }).get(), // no price: use the estimate
-  ]);
-  const total = Number(priced.data().total) + Number(estimated.data().total);
-  return Number.isFinite(total) ? round2(total) : 0;
+  const snap = await db
+    .collection('users').doc(uid).collection('items')
+    .where('status', '==', 'resisted')
+    .select('price', 'estimatedPrice')
+    .get();
+  return round2(snap.docs.reduce((sum, d) => sum + amountOf(d.data()), 0));
 }
 
 export async function leaderboard(body, req) {
@@ -105,8 +106,16 @@ export async function leaderboard(body, req) {
     .filter(Boolean);
   const uids = [me, ...new Set(friendUids)].slice(0, MAX_PARTICIPANTS);
 
-  const profiles = await db.getAll(...uids.map((uid) => db.collection('profiles').doc(uid)));
-  const amounts = await Promise.all(uids.map((uid) => spendingAvoided(db, uid)));
+  let profiles, amounts;
+  try {
+    profiles = await db.getAll(...uids.map((uid) => db.collection('profiles').doc(uid)));
+    amounts = await Promise.all(uids.map((uid) => spendingAvoided(db, uid)));
+  } catch (e) {
+    console.error('Leaderboard query failed:', e);
+    // No user data in this message: just the Firestore error code and its first line.
+    const firstLine = String(e.message).split(/\r?\n/)[0].slice(0, 200);
+    throw new HttpError(503, `Leaderboard query failed (${e.code ?? 'error'}): ${firstLine}`);
+  }
 
   const rows = uids.map((uid, i) => {
     const p = profiles[i].exists ? profiles[i].data() : null;

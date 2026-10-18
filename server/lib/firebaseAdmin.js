@@ -37,7 +37,16 @@ function init() {
   return initializeApp({ credential: cert(account) });
 }
 
-export const adminDb = () => getFirestore(init());
+let db;
+export const adminDb = () => {
+  if (!db) {
+    db = getFirestore(init());
+    // REST instead of gRPC: friendlier to serverless functions (uses the service-account key;
+    // the local emulator keeps the default transport, which needs no credentials).
+    if (!emulator()) db.settings({ preferRest: true });
+  }
+  return db;
+};
 
 // Google's public keys for Firebase ID tokens (cached and rotated by jose).
 const GOOGLE_KEYS = createRemoteJWKSet(
