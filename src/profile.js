@@ -4,7 +4,7 @@
 //                             Visible to other signed-in accounts (for friend search). No email, no money.
 // usernames/{usernameLower} → { uid }   One doc per name = usernames are unique, ignoring case.
 // Both are written together in ONE transaction, and firestore.rules re-checks everything.
-import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 export const USERNAME_RULE = '3–20 characters: letters, numbers or _';
@@ -24,6 +24,12 @@ export function validateDisplayName(displayName) {
 
 const profileRef = (uid) => doc(db, 'profiles', uid);
 const usernameRef = (lower) => doc(db, 'usernames', lower);
+
+// Live: calls back with my profile (or null if I haven't picked a username yet).
+// Unlike a one-off read, it waits through brief connection drops instead of failing.
+export function subscribeMyProfile(callback, onError) {
+  return onSnapshot(profileRef(auth.currentUser.uid), (snap) => callback(snap.exists() ? snap.data() : null), onError);
+}
 
 export async function getMyProfile() {
   const snap = await getDoc(profileRef(auth.currentUser.uid));

@@ -20,8 +20,9 @@ export function endpoint(handler) {
       // req is passed too, for handlers that need headers (the leaderboard reads Authorization).
       return res.status(200).json(await handler(body, req));
     } catch (e) {
-      // Expected errors carry their own status: bad input (400), not signed in (401), not allowed (403).
-      if ([400, 401, 403].includes(e.status)) return res.status(e.status).json({ error: e.message });
+      // Expected errors carry their own status: bad input (400), not signed in (401), not allowed (403),
+      // server not set up yet (503).
+      if ([400, 401, 403, 503].includes(e.status)) return res.status(e.status).json({ error: e.message });
       console.error(e); // details stay in the server logs
       return res.status(502).json({ error: 'Sprout is having trouble thinking right now.' });
     }

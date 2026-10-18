@@ -9,7 +9,7 @@
     "test": "bash test/run.sh"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",

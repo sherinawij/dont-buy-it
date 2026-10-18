@@ -16,7 +16,13 @@ function init() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT is not set');
   const json = raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8');
-  return initializeApp({ credential: cert(JSON.parse(json)) });
+  let account;
+  try {
+    account = JSON.parse(json);
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON (paste the whole downloaded file)');
+  }
+  return initializeApp({ credential: cert(account) });
 }
 
 export const adminAuth = () => getAuth(init());
