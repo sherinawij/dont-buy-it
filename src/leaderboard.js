@@ -1,6 +1,7 @@
 // Fetches the friends-only leaderboard from our backend. Owner: P1 (social features).
 // We send the Firebase ID token so the SERVER verifies who you are; the app never sends a user id.
 import { auth } from './firebase';
+import { authErrorMessage } from './auth';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
 const TIMEOUT_MS = 20000;
@@ -12,7 +13,12 @@ export async function fetchLeaderboard() {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) throw new Error('Create an account to use the leaderboard.');
 
-  const token = await user.getIdToken(); // refreshed automatically if it expired
+  let token;
+  try {
+    token = await user.getIdToken(); // refreshed automatically if it expired
+  } catch (e) {
+    throw new Error(authErrorMessage(e)); // e.g. "Your session expired. Please sign in again."
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res;

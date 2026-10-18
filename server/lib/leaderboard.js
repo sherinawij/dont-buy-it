@@ -4,8 +4,11 @@
 // Security model:
 // - Who you are comes from a verified Firebase ID token (Authorization: Bearer ...), never from the body.
 // - Guests (anonymous) are refused: leaderboards need a real account.
-// - Friends' items are read here, on the server, and only ONE number per person leaves:
-//   no items, prices, dates or chats. Nothing is stored, so there's no total that could go stale or be faked.
+// - Firestore adds up each person's amounts on the server (sum aggregation): no items are downloaded,
+//   and only ONE number per person leaves: no items, prices, dates or chats.
+// - Nothing is stored, so there's no total that could go stale or be faked; firestore.rules keep the
+//   underlying amounts valid and stop a decision from being changed or re-counted.
+import { AggregateField } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from './firebaseAdmin.js';
 
 export class HttpError extends Error {
@@ -17,8 +20,6 @@ export class HttpError extends Error {
 
 const MAX_PARTICIPANTS = 50;
 
-// MUST match src/calc.js: priceOf() and totalSaved() — the same number as the app's jar.
-const priceOf = (item) => item.price ?? item.estimatedPrice ?? 0;
 const round2 = (n) => Math.round(n * 100) / 100;
 
 async function verifiedUser(req) {
@@ -37,14 +38,18 @@ async function verifiedUser(req) {
   return decoded.uid;
 }
 
-// Spending avoided for one person: sum over items they chose not to buy. Each item counts once.
+// Spending avoided for one person: the same number as the app's jar (src/calc.js totalSaved:
+// price ?? estimatedPrice over items they chose not to buy). Each item counts once.
+// Firestore adds it up for us (sum aggregation), so no individual items are downloaded,
+// and sum() skips anything that isn't a number. firestore.rules keeps new amounts valid.
 async function spendingAvoided(db, uid) {
-  const snap = await db
-    .collection('users').doc(uid).collection('items')
-    .where('status', '==', 'resisted')
-    .select('price', 'estimatedPrice')
-    .get();
-  return round2(snap.docs.reduce((sum, d) => sum + priceOf(d.data()), 0));
+  const resisted = db.collection('users').doc(uid).collection('items').where('status', '==', 'resisted');
+  const [priced, estimated] = await Promise.all([
+    resisted.aggregate({ total: AggregateField.sum('price') }).get(), // items with a price the user typed
+    resisted.where('price', '==', null).aggregate({ total: AggregateField.sum('estimatedPrice') }).get(), // no price: use the estimate
+  ]);
+  const total = Number(priced.data().total) + Number(estimated.data().total);
+  return Number.isFinite(total) ? round2(total) : 0;
 }
 
 export async function leaderboard(body, req) {

@@ -59,7 +59,10 @@ const B = phone('B');
 console.log('== Guests (anonymous) ==');
 await signInAnonymously(A.auth);
 const guestUid = A.auth.currentUser.uid;
-await allowed('guest writes own private item', () => setDoc(doc(A.db, 'users', guestUid, 'items', 'hoodie'), { name: 'Hoodie', status: 'resisted', price: 60 }));
+await allowed('guest writes own private item', () => setDoc(doc(A.db, 'users', guestUid, 'items', 'hoodie'), {
+  name: 'Hoodie', category: 'clothing', price: 60, estimatedPrice: null, link: null, essential: false,
+  messages: [], criteriaMet: [], status: 'debating', outcome: null, createdAt: serverTimestamp(), decidedAt: null,
+}));
 await allowed('guest reads own private item', () => getDoc(doc(A.db, 'users', guestUid, 'items', 'hoodie')));
 await denied('guest cannot claim a username', () => saveProfile(A, 'guesty', 'Guest'));
 await denied('guest cannot read profiles', () => getDoc(doc(A.db, 'profiles', 'someone')));

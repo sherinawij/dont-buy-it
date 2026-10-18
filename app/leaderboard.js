@@ -2,7 +2,7 @@
 // The ranking is computed on the server from each person's "Don't buy it" decisions; friends only
 // ever receive one number per person. Refreshes when opened and on pull-to-refresh.
 // Owner: P1 (social features).
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Button, Card } from '../src/components/ui';
@@ -22,12 +22,16 @@ export default function LeaderboardScreen() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Opening the screen and pulling to refresh can overlap: only the newest answer is shown.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    const seq = ++latest.current;
     setError('');
     try {
-      setData(await fetchLeaderboard());
+      const result = await fetchLeaderboard();
+      if (seq === latest.current) setData(result);
     } catch (e) {
-      setError(e.message);
+      if (seq === latest.current) setError(e.message);
     }
   }, []);
 
