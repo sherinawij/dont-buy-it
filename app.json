@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "HTV11",
-    "slug": "HTV11",
+    "name": "Don't Buy It!",
+    "slug": "dont-buy-it",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#DDF2E1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,6 +19,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Sprout needs to see the thing you want to buy.",
+          "cameraPermission": "Sprout needs to see the thing you want to buy."
+        }
+      ]
+    ],
+    "scheme": "dontbuyit"
   }
 }
