@@ -8,8 +8,26 @@
 //   and only ONE number per person leaves: no items, prices, dates or chats.
 // - Nothing is stored, so there's no total that could go stale or be faked; firestore.rules keep the
 //   underlying amounts valid and stop a decision from being changed or re-counted.
-import { AggregateField } from 'firebase-admin/firestore';
-import { adminAuth, adminDb } from './firebaseAdmin.js';
+// The Admin SDK is loaded on first use (not at import), so a setup problem returns a clear
+// 503 message instead of crashing the whole serverless function.
+let admin;
+async function loadAdmin() {
+  if (admin) return admin;
+  try {
+    const [{ AggregateField }, { adminAuth, adminDb }] = await Promise.all([
+      import('firebase-admin/firestore'),
+      import('./firebaseAdmin.js'),
+    ]);
+    const auth = adminAuth(); // throws if FIREBASE_SERVICE_ACCOUNT is missing or invalid
+    const db = adminDb();
+    admin = { AggregateField, auth, db };
+    return admin;
+  } catch (e) {
+    console.error('Leaderboard setup failed:', e);
+    const firstLine = String(e.message).split(/\r?\n/)[0];
+    throw new HttpError(503, `Leaderboard isn’t set up on the server: ${firstLine}`);
+  }
+}
 
 export class HttpError extends Error {
   constructor(status, message) {
@@ -28,7 +46,7 @@ async function verifiedUser(req) {
   if (!token) throw new HttpError(401, 'Sign in to see the leaderboard.');
   let decoded;
   try {
-    decoded = await adminAuth().verifyIdToken(token);
+    decoded = await (await loadAdmin()).auth.verifyIdToken(token);
   } catch {
     throw new HttpError(401, 'Your session expired. Please sign in again.');
   }
@@ -43,6 +61,7 @@ async function verifiedUser(req) {
 // Firestore adds it up for us (sum aggregation), so no individual items are downloaded,
 // and sum() skips anything that isn't a number. firestore.rules keeps new amounts valid.
 async function spendingAvoided(db, uid) {
+  const { AggregateField } = admin; // loaded by loadAdmin() before we get here
   const resisted = db.collection('users').doc(uid).collection('items').where('status', '==', 'resisted');
   const [priced, estimated] = await Promise.all([
     resisted.aggregate({ total: AggregateField.sum('price') }).get(), // items with a price the user typed
@@ -53,8 +72,14 @@ async function spendingAvoided(db, uid) {
 }
 
 export async function leaderboard(body, req) {
+  // Setup probe for deploys: POST {"check": true} reports whether the server side is configured.
+  // Needs no sign-in and reveals nothing about users.
+  if (body?.check === true) {
+    await loadAdmin();
+    return { ok: true };
+  }
   const me = await verifiedUser(req);
-  const db = adminDb();
+  const { db } = await loadAdmin();
 
   // My accepted friends only. Pending requests and strangers never appear.
   const friendships = await db.collection('friendships').where('members', 'array-contains', me).get();

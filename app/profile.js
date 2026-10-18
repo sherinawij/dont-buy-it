@@ -12,7 +12,7 @@ import Sprout from '../src/components/Sprout';
 import { Button, Card } from '../src/components/ui';
 import { signOutUser, useAuthUser } from '../src/auth';
 import {
-  getMyProfile, profileErrorMessage, saveProfile, USERNAME_RULE, validateDisplayName, validateUsername,
+  profileErrorMessage, saveProfile, subscribeMyProfile, USERNAME_RULE, validateDisplayName, validateUsername,
 } from '../src/profile';
 import { subscribeItems } from '../src/db';
 import { subscribeFriendships } from '../src/friends';
@@ -134,20 +134,25 @@ function AccountProfile({ email, items }) {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
   const [profile, setProfile] = useState(undefined); // undefined = loading, null = not set up yet
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(null); // Firebase error code, shown so problems are diagnosable
+  const [attempt, setAttempt] = useState(0);
   const [editing, setEditing] = useState(false);
   const [friends, setFriends] = useState(null); // { count, incoming } once loaded
 
-  function load() {
-    setLoadError(false);
-    getMyProfile()
-      .then((p) => {
+  // Live profile: updates by itself after saving, and rides out short connection drops.
+  useEffect(() => {
+    setLoadError(null);
+    return subscribeMyProfile(
+      (p) => {
         setProfile(p);
         if (!p) setEditing(true); // first time: pick a username straight away
-      })
-      .catch(() => setLoadError(true));
-  }
-  useEffect(load, []);
+      },
+      (e) => {
+        console.warn('Profile load failed:', e?.code, e?.message);
+        setLoadError(e?.code || 'unknown');
+      }
+    );
+  }, [attempt]);
 
   // Friend count + pending requests (badge). Failures just hide the numbers.
   useEffect(
@@ -179,8 +184,13 @@ function AccountProfile({ email, items }) {
   if (loadError) {
     return (
       <View style={styles.center}>
-        <Text style={styles.body}>Couldn’t load your profile. Check your connection.</Text>
-        <Button title="Try again" variant="secondary" onPress={load} />
+        <Text style={styles.body}>
+          {loadError === 'permission-denied'
+            ? 'Your account isn’t allowed to read profiles yet. Make sure the latest Firestore rules are published, then try again.'
+            : 'Couldn’t load your profile. Check your connection.'}
+        </Text>
+        <Text style={styles.small}>Error: {loadError}</Text>
+        <Button title="Try again" variant="secondary" onPress={() => { setProfile(undefined); setAttempt((n) => n + 1); }} />
       </View>
     );
   }
