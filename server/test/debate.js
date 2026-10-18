@@ -3,7 +3,7 @@
 // Handy for tuning Sprout and rehearsing the demo.
 //   node test/debate.js                          → local server
 //   node test/debate.js https://your-app.vercel.app
-const BASE = process.argv[2] || 'http://localhost:3001';
+const BASE = (process.argv[2] || 'http://localhost:3001').replace(/\/+$/, ''); // tolerate a trailing slash
 const CONCEDE_AT = 3;
 const FINAL_PLEA_TURN = 7;
 
