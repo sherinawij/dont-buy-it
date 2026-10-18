@@ -79,8 +79,18 @@ export async function leaderboard(body, req) {
   // Setup probe for deploys: POST {"check": true} reports whether the server side is configured.
   // Needs no sign-in and reveals nothing about users.
   if (body?.check === true) {
-    await loadAdmin();
-    return { ok: true };
+    const info = {
+      environment: process.env.VERCEL_ENV ?? 'local', // production / preview / local
+      commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || null,
+      // Variable NAMES only (never values), to spot a missing or misspelled key.
+      firebaseVariables: Object.keys(process.env).filter((k) => /firebase/i.test(k)),
+    };
+    try {
+      await loadAdmin();
+      return { ok: true, ...info };
+    } catch (e) {
+      return { ok: false, error: e.message, ...info };
+    }
   }
   const me = await verifiedUser(req);
   const { db } = await loadAdmin();
