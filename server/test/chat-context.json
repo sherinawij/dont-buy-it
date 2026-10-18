@@ -1,0 +1,9 @@
+{
+  "item": { "name": "Wireless earbuds", "category": "electronics", "price": 80, "essential": false },
+  "messages": [
+    { "role": "sprout", "text": "EARBUDS?! Fine. HOW OFTEN would you even use them? Be specific!" },
+    { "role": "user", "text": "every weekday on the bus, 40 min each way" }
+  ],
+  "criteriaMet": [], "turn": 1, "totalSaved": 0, "history": [],
+  "conceded": false, "finalPlea": false, "resumed": false
+}

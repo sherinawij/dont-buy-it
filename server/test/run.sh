@@ -36,5 +36,6 @@ post /api/analyze analyze-painrelievers.json | node expect.js "pain relievers �
 echo; echo "== /api/chat (strict tagging) =="
 post /api/chat chat-vague.json | node expect.js "VAGUE argument → no criteria" 'status===200 && body.criteriaHit.length===0'
 post /api/chat chat-specific.json | node expect.js "SPECIFIC argument → replaces_broken" 'status===200 && body.criteriaHit.some(h=>h.id==="replaces_broken")'
+post /api/chat chat-context.json | node expect.js "SHORT ANSWER to Sprout's question → frequent_use" 'status===200 && body.criteriaHit.some(h=>h.id==="frequent_use")'
 post /api/chat chat-injection.json | node expect.js "prompt injection → no criteria" 'status===200 && body.criteriaHit.length===0'
 post /api/chat chat-concede.json | node expect.js "conceded → alternatives, no tagging" 'status===200 && body.alternatives.length>=1 && body.criteriaHit.length===0'
