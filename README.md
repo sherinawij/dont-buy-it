@@ -52,11 +52,11 @@ Sprout's stubbornness is governed by a **hidden rubric**, and the **code**, not 
 ## Tech stack
 
 - **App:** Expo SDK 57 (React Native) + Expo Router, JavaScript. Runs in **Expo Go**, with no custom native build.
-  - `expo-image-picker` + `expo-image-manipulator` (photo resized to ~800px JPEG, sent as base64, **never stored**)
+  - `expo-image-picker` + `expo-image-manipulator` (photo resized to ~800px JPEG and sent as base64 for analysis; a small thumbnail stays **on the phone only** for the catalog, never uploaded)
   - `expo-haptics`, `react-native-svg` (Sprout's 5 stages and faces), RN `Animated` for every animation
   - `react-native-view-shot` + `expo-sharing` for share cards
   - Hand-built chat UI (FlatList + bubbles + KeyboardAvoidingView)
-- **Data:** Firebase JS SDK with **Anonymous Auth** (no login screens, persisted with AsyncStorage) and **Firestore**. No Firebase Storage. Photos are never uploaded; only the AI's results are saved.
+- **Data:** Firebase JS SDK with **Anonymous Auth** (no login screens, persisted with AsyncStorage) and **Firestore**. No Firebase Storage. Photos never leave your phone (a small local thumbnail in AsyncStorage shows them in the catalog); only the AI's results are saved to Firestore.
 - **Backend:** Small Node service in `/server` using the **Gemini API** (`@google/genai`) with structured JSON output, validated again on the server. The same endpoint logic in `/server/lib` runs as Vercel serverless functions (`/server/api/*.js`) and as a local Express server (`/server/local.js`). The Gemini key lives **only** on the backend.
 - **Fallbacks:** if `/analyze` fails, the app asks for name and price manually. If `/chat` fails, Sprout uses canned lines for its current escalation stage, so the demo keeps working offline.
 

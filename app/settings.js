@@ -1,6 +1,7 @@
 // Settings: every field is optional. The app works fine with all of them blank.
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
+import { ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
+import { useKeyboardInset } from '../src/useKeyboardInset';
 import { Button, Card } from '../src/components/ui';
 import { getSettings, saveSettings } from '../src/db';
 import { parseAmount } from '../src/calc';
@@ -14,6 +15,7 @@ const MONEY_FIELDS = [
 ];
 
 export default function Settings() {
+  const keyboard = useKeyboardInset();
   const [form, setForm] = useState(null); // text values while editing
   const [status, setStatus] = useState('');
 
@@ -63,7 +65,8 @@ export default function Settings() {
   if (!form) return null;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    // Pad by exactly the part the keyboard covers, so the lower fields can scroll into view.
+    <View ref={keyboard.viewRef} collapsable={false} style={{ flex: 1, paddingBottom: keyboard.inset }}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Card style={styles.note}>
           <Text style={styles.noteText}>
@@ -104,7 +107,7 @@ export default function Settings() {
         <Button title="Clear all financial info" variant="secondary" onPress={onClear} />
         {status ? <Text style={styles.status}>{status}</Text> : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

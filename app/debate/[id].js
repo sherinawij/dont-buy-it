@@ -5,7 +5,7 @@
 // The two exits ("Don't buy it" / "Buy anyway") are always visible: Sprout persuades, never blocks.
 import { useEffect, useRef, useState } from 'react';
 import {
-  FlatList, Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  FlatList, Image, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +22,8 @@ import { Button, Card } from '../../src/components/ui';
 import { chatWithSprout } from '../../src/api';
 import { decideItem, getItem, getRecentHistory, getSettings, subscribeItems, updateItem } from '../../src/db';
 import { getDraft } from '../../src/memory';
+import { usePhoto } from '../../src/photos';
+import { useKeyboardInset } from '../../src/useKeyboardInset';
 import * as calc from '../../src/calc';
 import { CANNED_LINES, FINAL_PLEA_TURN, categoryInfo } from '../../src/config';
 import {
@@ -71,7 +73,10 @@ async function buildChatBody({ item, settings, allItems, messages, criteriaMet, 
 export default function Debate() {
   const { id, resume } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const draft = getDraft(id); // photo + first suggested replies, in memory only (absent when resuming)
+  const draft = getDraft(id); // first suggested replies (+ full photo), in memory only (absent when resuming)
+  const storedPhoto = usePhoto(id); // small thumbnail kept on this phone only (src/photos.js)
+  const photoUri = draft?.photoUri ?? storedPhoto;
+  const { viewRef, inset: keyboardInset } = useKeyboardInset();
 
   const [item, setItem] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -93,6 +98,11 @@ export default function Debate() {
   const listRef = useRef(null);
   const leaveTimer = useRef(null);
   const decidedRef = useRef(false); // set by the exits, so a late Sprout reply can't undo a decision
+
+  // When the keyboard opens the chat area shrinks; keep the latest message in view.
+  useEffect(() => {
+    if (keyboardInset > 0) listRef.current?.scrollToEnd({ animated: true });
+  }, [keyboardInset]);
 
   // Live catalog: used for Sprout's stage and the "spending avoided" total sent as context.
   // (Also kept in a ref so async code always sees the latest list, not a stale closure.)
@@ -126,7 +136,7 @@ export default function Debate() {
       // Normally Add saved Sprout's opening line; if not, use a canned one so the chat isn't empty.
       let msgs = it.messages?.length
         ? it.messages
-        : [{ role: 'sprout', text: (it.essential ? CANNED_LINES.opening_essential : CANNED_LINES.opening_want)[0] }];
+        : [{ role: 'sprout', text: (it.essential ? CANNED_LINES.opening_essential : CANNED_LINES.opening_want)[0], mood: it.essential ? 'happy' : 'smug' }];
       const met = it.criteriaMet || [];
       const alreadyConceded = !it.essential && hasEnoughToConcede(met);
       const turns = countUserTurns(msgs);
@@ -156,7 +166,8 @@ export default function Debate() {
       });
       const res = await chatWithSprout(body);
       if (!alive || decidedRef.current) return;
-      msgs = [...msgs, { role: 'sprout', text: res.reply }];
+      const resumedMood = moodFor({ essential: false, status: 'debating', conceded: alreadyConceded, waiting: false, criteriaMet: met, turn: turns });
+      msgs = [...msgs, { role: 'sprout', text: res.reply, mood: resumedMood }];
       setMessages(msgs);
       setSuggested(alreadyConceded ? [] : res.suggestedReplies);
       if (alreadyConceded) setAlternatives(validAlternatives(res.alternatives));
@@ -195,13 +206,14 @@ export default function Debate() {
       // Sprout panics while we wait (see moodFor).
       const c = await chatWithSprout(await chatBody(msgs, met, t, { conceded: true }));
       if (decidedRef.current) return persist(msgs, met);
-      msgs = [...msgs, { role: 'sprout', text: c.reply }];
+      msgs = [...msgs, { role: 'sprout', text: c.reply, mood: 'defeated' }];
       setConceded(true);
       setAlternatives(validAlternatives(c.alternatives));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       maybeShake(c.reply, t);
     } else {
-      msgs = [...msgs, { role: 'sprout', text: res.reply }];
+      const replyMood = moodFor({ essential: false, status: 'debating', conceded: false, waiting: false, criteriaMet: met, turn: t });
+      msgs = [...msgs, { role: 'sprout', text: res.reply, mood: replyMood }];
       if (finalPlea) setPleaDone(true);
       else setSuggested(res.suggestedReplies);
       maybeShake(res.reply, t);
@@ -216,7 +228,7 @@ export default function Debate() {
     decidedRef.current = true;
     setStatus('resisted');
     setWaiting(false);
-    setMessages((m) => [...m, { role: 'sprout', text: RESIST_LINE }]);
+    setMessages((m) => [...m, { role: 'sprout', text: RESIST_LINE, mood: 'ecstatic' }]);
     setBurstKey((k) => k + 1);
     setShakeKey((k) => k + 1); // happy wiggle
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -229,7 +241,7 @@ export default function Debate() {
     setWaiting(false);
     // ONE dramatic line, then Sprout lets it go completely. Never any guilt for a genuine need.
     const line = item.essential ? 'Good call. Take care of yourself! 💚' : 'I… I need a moment. *faints gracefully*';
-    setMessages((m) => [...m, { role: 'sprout', text: line }]);
+    setMessages((m) => [...m, { role: 'sprout', text: line, mood: item.essential ? 'happy' : 'defeated' }]);
     decideItem(id, { status: 'bought', outcome: buyOutcome(item, conceded) }).catch(() => {});
     leaveTimer.current = setTimeout(goBack, 1500);
   }
@@ -266,36 +278,35 @@ export default function Debate() {
   const mood = moodFor({ essential: item.essential, status, conceded, waiting, criteriaMet, turn });
   const priceText = price > 0 ? `${calc.formatMoney(price)}${item.price == null ? ' (estimate)' : ''}` : 'Price unknown';
 
-  // Keyboard: iOS needs padding + the header's height (status bar inset + 44pt nav bar);
-  // Android resizes the window itself (Expo docs' recommended setup).
+  const typing = keyboardInset > 0;
+
+  // Keyboard: pad the screen by exactly the part the keyboard covers, so the input sits right above it.
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}
-    >
-      {/* Item header */}
-      <View style={styles.header}>
-        {draft?.photoUri ? (
-          <Image source={{ uri: draft.photoUri }} style={styles.thumb} accessibilityLabel="Photo of the item" />
-        ) : (
-          <View style={[styles.thumb, styles.thumbEmoji]}>
-            <Text style={{ fontSize: 26 }}>{categoryInfo(item.category).emoji}</Text>
+    <View ref={viewRef} collapsable={false} style={{ flex: 1, paddingBottom: keyboardInset }}>
+      {/* Item header (hidden while typing, so the chat keeps its space above the keyboard) */}
+      {!typing && (
+        <View style={styles.header}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.thumb} accessibilityLabel="Photo of the item" />
+          ) : (
+            <View style={[styles.thumb, styles.thumbEmoji]}>
+              <Text style={{ fontSize: 26 }}>{categoryInfo(item.category).emoji}</Text>
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.itemMeta}>
+              {priceText}
+              {hours != null ? `  ·  ≈ ${hours} ${hours === 1 ? 'hour' : 'hours'} of work` : ''}
+            </Text>
           </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.itemMeta}>
-            {priceText}
-            {hours != null ? `  ·  ≈ ${hours} ${hours === 1 ? 'hour' : 'hours'} of work` : ''}
-          </Text>
         </View>
-      </View>
+      )}
 
       {/* Sprout + conviction meter */}
       <View style={styles.sproutRow}>
         <View>
-          <Sprout stage={stage} mood={mood} size={84} shakeKey={shakeKey} />
+          <Sprout stage={stage} mood={mood} size={typing ? 56 : 84} shakeKey={shakeKey} />
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             <LeafBurst trigger={burstKey} />
           </View>
@@ -318,17 +329,25 @@ export default function Debate() {
         contentContainerStyle={styles.chat}
         data={messages}
         keyExtractor={(_, i) => String(i)}
-        renderItem={({ item: m }) => <ChatBubble role={m.role} text={m.text} />}
+        renderItem={({ item: m }) => (
+          <ChatBubble role={m.role} text={m.text} mood={m.mood ?? (item.essential ? 'happy' : 'smug')} stage={stage} />
+        )}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         keyboardShouldPersistTaps="handled"
         ListFooterComponent={
           <>
-            {waiting && <TypingDots />}
+            {waiting && <TypingDots mood={mood} stage={stage} />}
             {alternatives.length > 0 && (
               <View style={{ marginTop: 10 }}>
                 <Text style={styles.altTitle}>Sprout’s (grudging) better ideas</Text>
                 {alternatives.map((a) => (
-                  <AlternativeCard key={a.type} alternative={a} itemName={item.name} />
+                  <AlternativeCard
+                    key={a.type}
+                    alternative={a}
+                    itemName={item.name}
+                    category={item.category}
+                    photoUri={photoUri}
+                  />
                 ))}
               </View>
             )}
@@ -349,7 +368,6 @@ export default function Debate() {
               placeholderTextColor={colors.muted}
               maxLength={MAX_INPUT}
               multiline
-              editable={!waiting}
               accessibilityLabel="Your argument"
             />
             <Pressable
@@ -367,7 +385,7 @@ export default function Debate() {
       {lockNote && <Text style={[styles.note, { paddingHorizontal: 16, paddingTop: 6 }]}>{lockNote}</Text>}
 
       {/* Exits — always visible while the item is undecided */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.footer, { paddingBottom: typing ? 8 : Math.max(insets.bottom, 12) }]}>
         {status === 'debating' && (
           <View style={styles.exits}>
             <Button title="Don't buy it" onPress={dontBuy} style={{ flex: 1 }} />
@@ -385,7 +403,7 @@ export default function Debate() {
           </Card>
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

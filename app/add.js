@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform,
+  ActivityIndicator, Image, Linking, Platform,
   Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { analyzeItem } from '../src/api';
 import { createItem, getRecentHistory } from '../src/db';
 import { setDraft } from '../src/memory';
+import { savePhoto } from '../src/photos';
+import { useKeyboardInset } from '../src/useKeyboardInset';
 import { parseAmount } from '../src/calc';
 import { CANNED_LINES, CATEGORIES } from '../src/config';
 import { colors, font, radius } from '../src/theme';
@@ -38,6 +40,7 @@ function validAnalysis(data) {
 }
 
 export default function Add() {
+  const keyboard = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -174,6 +177,8 @@ export default function Add() {
         criteriaMet: [], status: 'debating', outcome: null,
       });
       // Only the URI enters the transient draft. Neither the URI nor image bytes go to Firestore.
+      // A small thumbnail stays on this phone (src/photos.js) so the catalog can show the real photo.
+      savePhoto(id, photo?.uri);
       setDraft(id, {
         photoUri: photo?.uri ?? null,
         suggestedReplies: Array.isArray(data.suggestedReplies) ? data.suggestedReplies.filter((text) => typeof text === 'string' && text.trim()).slice(0, 3).map((text) => text.slice(0, 160)) : [],
@@ -189,7 +194,8 @@ export default function Add() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}>
+    // Pad by exactly the part the keyboard covers (works on Android edge-to-edge and iOS).
+    <View ref={keyboard.viewRef} collapsable={false} style={[styles.screen, { paddingBottom: keyboard.inset }]}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 20 }]}>
         <View style={styles.hero}>
           <Sprout stage={1} mood={phase === 'analyze' ? 'panicking' : manual && essential ? 'happy' : 'smug'} size={140} shakeKey={phase === 'analyze'} />
@@ -232,7 +238,7 @@ export default function Add() {
         <Button title={busy ? 'One moment…' : manual ? 'Talk to Sprout' : 'Ask Sprout'} onPress={submit} disabled={busy} style={styles.submitButton} />
         {manual && !busy && <Pressable accessibilityRole="button" style={styles.textButton} onPress={() => { setManual(false); setError(''); }}><Text style={styles.linkText}>Try analysis again</Text></Pressable>}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

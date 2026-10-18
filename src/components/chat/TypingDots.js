@@ -1,9 +1,12 @@
-// "Sprout is typing…" — three dots bouncing one after another.
+// "Sprout is thinking…" — a mini Sprout reacting live (smug → nervous → panicking as the meter fills)
+// next to three dots bouncing one after another.
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
+import Sprout from '../Sprout';
+import { AVATAR_SIZE } from './ChatBubble';
 import { colors, radius } from '../../theme';
 
-export default function TypingDots() {
+export default function TypingDots({ mood = 'smug', stage = 1 }) {
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -23,25 +26,38 @@ export default function TypingDots() {
   }, [dots]);
 
   return (
-    <View style={styles.bubble} accessibilityLabel="Sprout is typing">
-      {dots.map((v, i) => (
-        <Animated.View
-          key={i}
-          style={[styles.dot, { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }] }]}
-        />
-      ))}
+    <View style={styles.row} accessibilityLabel="Sprout is thinking">
+      <View style={styles.avatar}>
+        <Sprout stage={stage} mood={mood} size={AVATAR_SIZE} />
+      </View>
+      <View style={styles.bubble}>
+        {dots.map((v, i) => (
+          <Animated.View
+            key={i}
+            style={[styles.dot, { transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }] }]}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 4 },
+  avatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   bubble: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     gap: 6,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginVertical: 4,
     borderRadius: radius.md,
     borderBottomLeftRadius: 6,
     backgroundColor: colors.card,
