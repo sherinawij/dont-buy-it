@@ -120,7 +120,10 @@ function AccountProfile({ email }) {
         {settingUp ? (
           <Text style={styles.body}>Friends find you by your username. They’ll see your display name and username, never your email.</Text>
         ) : (
-          <Button title="👥 Friends" onPress={() => router.push('/friends')} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Button title="👥 Friends" onPress={() => router.push('/friends')} style={{ flex: 1 }} />
+            <Button title="🏆 Leaderboard" onPress={() => router.push('/leaderboard')} style={{ flex: 1 }} />
+          </View>
         )}
 
         <View style={styles.field}>
