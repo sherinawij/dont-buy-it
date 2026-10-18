@@ -34,6 +34,19 @@ const SCENARIOS = [
       'I checked refurbished ones online but none fit my model, and my roommate uses a different brand',
     ],
   },
+  {
+    // Short, casual answers that are still real reasons: Sprout should be strict but give in.
+    title: 'Earbuds — casual but reasonable (user should win)',
+    item: { name: 'Wireless earbuds', category: 'electronics', price: 80, essential: false },
+    opening: 'EARBUDS?! What is wrong with the ones you HAVE?',
+    extra: { savingsGoal: 'Trip to Montreal', goalAmount: 500 },
+    lines: [
+      'the left one died last week, no sound at all',
+      'every day on the bus to school, like an hour total',
+      'they were my only pair',
+      'repair costs like $60 so not worth it',
+    ],
+  },
 ];
 
 async function chat(body) {
