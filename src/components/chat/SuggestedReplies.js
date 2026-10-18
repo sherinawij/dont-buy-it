@@ -3,9 +3,11 @@
 // flexGrow: 0 matters: without it a horizontal ScrollView inside a column stretches vertically,
 // which is what made the chips tall and bubble-shaped before.
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { colors, font } from '../../theme';
+import { font } from '../../theme';
+import { useStyles } from '../../useTheme';
 
 export default function SuggestedReplies({ replies, onPick, disabled }) {
+  const styles = useStyles(makeStyles);
   if (!replies?.length) return null;
   return (
     <ScrollView
@@ -31,7 +33,7 @@ export default function SuggestedReplies({ replies, onPick, disabled }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   scroll: { flexGrow: 0, flexShrink: 0 },
   row: { gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, alignItems: 'center' },
   chip: {

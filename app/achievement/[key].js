@@ -10,11 +10,14 @@ import AchievementCard from '../../src/components/AchievementCard';
 import { Button } from '../../src/components/ui';
 import { subscribeItems } from '../../src/db';
 import { findAchievement, shareMessage } from '../../src/achievements';
-import { colors, font } from '../../src/theme';
+import { font } from '../../src/theme';
+import { useStyles, useTheme } from '../../src/useTheme';
 
 const goHome = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 export default function AchievementScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const { key } = useLocalSearchParams();
   const [items, setItems] = useState(null); // null = loading
   const [sharing, setSharing] = useState(false);
@@ -68,7 +71,7 @@ export default function AchievementScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, alignItems: 'center', gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   note: { fontSize: font.small, color: colors.muted, textAlign: 'center', maxWidth: 320 },

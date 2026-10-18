@@ -30,7 +30,8 @@ import {
   buyOutcome, countUserTurns, hasEnoughToConcede, isFinalPleaTurn, moodFor, recentMessages, shouldShake,
   unionCriteria, validAlternatives,
 } from '../../src/debate/logic';
-import { colors, radius, font } from '../../src/theme';
+import { radius, font } from '../../src/theme';
+import { useStyles, useTheme } from '../../src/useTheme';
 
 const MAX_INPUT = 500; // the server rejects longer messages
 const RESIST_LINE = 'YOU DID IT. I’M SO PROUD. I’M GROWING.';
@@ -72,6 +73,8 @@ async function buildChatBody({ item, settings, allItems, messages, criteriaMet, 
 
 export default function Debate() {
   const { id, resume } = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const draft = getDraft(id); // first suggested replies (+ full photo), in memory only (absent when resuming)
   const storedPhoto = usePhoto(id); // small thumbnail kept on this phone only (src/photos.js)
@@ -413,7 +416,7 @@ export default function Debate() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 4 },
   thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.primarySoft },
@@ -442,7 +445,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   send: { backgroundColor: colors.primary, borderRadius: radius.md, paddingVertical: 13, paddingHorizontal: 16 },
-  sendText: { color: '#fff', fontWeight: '700', fontSize: font.body },
+  sendText: { color: colors.onPrimary, fontWeight: '700', fontSize: font.body },
   note: { fontSize: font.small, color: colors.muted, textAlign: 'center' },
   footer: { paddingHorizontal: 16, paddingTop: 10 },
   exits: { flexDirection: 'row', gap: 10 },

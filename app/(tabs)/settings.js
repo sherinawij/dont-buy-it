@@ -1,11 +1,12 @@
 // Settings: every field is optional. The app works fine with all of them blank.
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
-import { useKeyboardInset } from '../src/useKeyboardInset';
-import { Button, Card } from '../src/components/ui';
-import { getSettings, saveSettings } from '../src/db';
-import { parseAmount } from '../src/calc';
-import { colors, font, radius } from '../src/theme';
+import { Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
+import { useKeyboardInset } from '../../src/useKeyboardInset';
+import { Button, Card } from '../../src/components/ui';
+import { getSettings, saveSettings } from '../../src/db';
+import { parseAmount } from '../../src/calc';
+import { font, radius } from '../../src/theme';
+import { THEME_MODES, useStyles, useTheme } from '../../src/useTheme';
 
 // Number fields shown on screen: [key, label, hint]
 const MONEY_FIELDS = [
@@ -14,7 +15,11 @@ const MONEY_FIELDS = [
   ['discretionaryBudget', 'Monthly fun-money budget ($)', 'Optional. Sprout estimates what’s left this month from items you mark as bought in this app.'],
 ];
 
+const MODE_LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
+
 export default function Settings() {
+  const { colors, mode, setMode } = useTheme();
+  const styles = useStyles(makeStyles);
   const keyboard = useKeyboardInset();
   const [form, setForm] = useState(null); // text values while editing
   const [status, setStatus] = useState('');
@@ -68,6 +73,25 @@ export default function Settings() {
     // Pad by exactly the part the keyboard covers, so the lower fields can scroll into view.
     <View ref={keyboard.viewRef} collapsable={false} style={{ flex: 1, paddingBottom: keyboard.inset }}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        {/* Appearance applies right away, separate from the Save button below */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Appearance</Text>
+          <View style={styles.segments} accessibilityRole="radiogroup">
+            {THEME_MODES.map((m) => (
+              <Pressable
+                key={m}
+                onPress={() => setMode(m)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: mode === m }}
+                style={[styles.segment, mode === m && styles.segmentOn]}
+              >
+                <Text style={[styles.segmentText, mode === m && styles.segmentTextOn]}>{MODE_LABELS[m]}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.hint}>Light is Greenhouse, Dark is Midnight Garden. System follows your phone.</Text>
+        </View>
+
         <Card style={styles.note}>
           <Text style={styles.noteText}>
             Everything here is optional. Estimates use only what you enter in this app — it’s not connected to any bank account.
@@ -111,7 +135,7 @@ export default function Settings() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 16, paddingBottom: 48 },
   note: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
   noteText: { fontSize: font.small + 1, color: colors.primaryDark, lineHeight: 21 },
@@ -128,6 +152,19 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   inputError: { borderColor: colors.error },
+  segments: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  segment: { flex: 1, minHeight: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  segmentOn: { backgroundColor: colors.primary },
+  segmentText: { fontSize: font.body, fontWeight: '700', color: colors.muted },
+  segmentTextOn: { color: colors.onPrimary },
   hint: { fontSize: font.small, color: colors.muted },
   error: { fontSize: font.small, color: colors.error },
   status: { fontSize: font.body, color: colors.primaryDark, textAlign: 'center' },

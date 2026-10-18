@@ -1,15 +1,19 @@
 // Small status label on catalog cards. Neutral wording and colours — never shaming.
 import { Text, View, StyleSheet } from 'react-native';
-import { colors, font } from '../theme';
+import { font } from '../theme';
+import { useStyles, useTheme } from '../useTheme';
 
-const STATUS = {
-  debating: { label: 'Debating', bg: '#FFF4D6', fg: '#7A5A00' },
+const statusStyles = (colors) => ({
+  debating: { label: 'Debating', bg: colors.debatingBg, fg: colors.debatingText },
   resisted: { label: 'Resisted', bg: colors.primarySoft, fg: colors.primaryDark },
-  bought: { label: 'Bought', bg: '#EEF1EF', fg: colors.muted }, // plain grey: no guilt
-};
+  bought: { label: 'Bought', bg: colors.neutralBg, fg: colors.neutralText }, // plain grey: no guilt
+});
 
 export default function StatusPill({ status }) {
-  const s = STATUS[status] ?? STATUS.debating;
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const all = statusStyles(colors);
+  const s = all[status] ?? all.debating;
   return (
     <View style={[styles.pill, { backgroundColor: s.bg }]}>
       <Text style={[styles.text, { color: s.fg }]}>{s.label}</Text>
@@ -17,7 +21,7 @@ export default function StatusPill({ status }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = () => StyleSheet.create({
   pill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
   text: { fontSize: font.small, fontWeight: '700' },
 });

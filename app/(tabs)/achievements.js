@@ -3,15 +3,18 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Card } from '../src/components/ui';
-import { subscribeItems } from '../src/db';
-import { deriveAchievements } from '../src/achievements';
-import { formatMoney } from '../src/calc';
-import { colors, font, radius } from '../src/theme';
+import { Card } from '../../src/components/ui';
+import { subscribeItems } from '../../src/db';
+import { deriveAchievements } from '../../src/achievements';
+import { formatMoney } from '../../src/calc';
+import { font, radius } from '../../src/theme';
+import { useStyles, useTheme } from '../../src/useTheme';
 
 const TYPE_EMOJI = { skipped: '🌱', slept_on_it: '😴', milestone: '🌸', alternative: '♻️' };
 
 export default function Achievements() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [items, setItems] = useState(null);
   useEffect(() => subscribeItems(setItems, () => setItems([])), []);
 
@@ -57,7 +60,7 @@ export default function Achievements() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 20, gap: 10 },
   row: {
