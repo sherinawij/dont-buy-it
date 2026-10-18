@@ -50,7 +50,9 @@ async function verifiedUser(req) {
   } catch {
     throw new HttpError(401, 'Your session expired. Please sign in again.');
   }
-  if (decoded.firebase?.sign_in_provider === 'anonymous') {
+  // Same rule as firestore.rules registered(): an upgraded guest may still say 'anonymous'
+  // but has an email; a pure guest has neither.
+  if (decoded.firebase?.sign_in_provider === 'anonymous' && !decoded.email) {
     throw new HttpError(403, 'Create an account to use the leaderboard.');
   }
   return decoded.uid;
