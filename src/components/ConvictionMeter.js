@@ -21,7 +21,23 @@ function Leaf({ size = 18 }) {
 const a11yText = (f) =>
   f >= 1 ? 'Sprout is convinced' : f > 0.5 ? 'Sprout is wavering' : f > 0 ? 'Sprout is a little shaken' : 'Sprout is not convinced';
 
-export default function ConvictionMeter({ criteriaMet }) {
+// "✓ Replaces something broken" chips — only for criteria the user has already EARNED.
+// Separate from the bar so the screen can lay them out full width.
+export function EarnedChips({ criteriaMet, style }) {
+  if (!criteriaMet.length) return null;
+  return (
+    <View style={[styles.chips, style]}>
+      {criteriaMet.map((id) => (
+        <View key={id} style={styles.chip}>
+          <Text style={styles.chipText}>✓ {labelFor(id)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// showChips={false} when the screen renders <EarnedChips> itself.
+export default function ConvictionMeter({ criteriaMet, showChips = true }) {
   const fraction = meterFraction(criteriaMet);
 
   // Animated width can't use the native driver, so this runs on JS — fine for one small bar.
@@ -42,15 +58,7 @@ export default function ConvictionMeter({ criteriaMet }) {
           <Leaf />
         </Animated.View>
       </View>
-      {criteriaMet.length > 0 && (
-        <View style={styles.chips}>
-          {criteriaMet.map((id) => (
-            <View key={id} style={styles.chip}>
-              <Text style={styles.chipText}>✓ {labelFor(id)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      {showChips && <EarnedChips criteriaMet={criteriaMet} style={{ marginTop: 8 }} />}
     </View>
   );
 }
@@ -67,7 +75,7 @@ const styles = StyleSheet.create({
   },
   vine: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 7, backgroundColor: colors.leaf },
   tip: { position: 'absolute', top: -4, marginLeft: -9 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  chip: { backgroundColor: colors.primarySoft, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 },
-  chipText: { fontSize: 13, color: colors.primaryDark, fontWeight: '600' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { backgroundColor: colors.primarySoft, borderRadius: 999, paddingVertical: 3, paddingHorizontal: 9 },
+  chipText: { fontSize: 12, color: colors.primaryDark, fontWeight: '600' },
 });

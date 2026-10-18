@@ -2,8 +2,7 @@
 // next to three dots bouncing one after another.
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import Sprout from '../Sprout';
-import { AVATAR_SIZE } from './ChatBubble';
+import SproutAvatar from './SproutAvatar';
 import { colors, radius } from '../../theme';
 
 export default function TypingDots({ mood = 'smug', stage = 1 }) {
@@ -27,9 +26,7 @@ export default function TypingDots({ mood = 'smug', stage = 1 }) {
 
   return (
     <View style={styles.row} accessibilityLabel="Sprout is thinking">
-      <View style={styles.avatar}>
-        <Sprout stage={stage} mood={mood} size={AVATAR_SIZE} />
-      </View>
+      <SproutAvatar stage={stage} mood={mood} />
       <View style={styles.bubble}>
         {dots.map((v, i) => (
           <Animated.View
@@ -44,15 +41,6 @@ export default function TypingDots({ mood = 'smug', stage = 1 }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 4 },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   bubble: {
     flexDirection: 'row',
     gap: 6,

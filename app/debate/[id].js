@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 
 import Sprout from '../../src/components/Sprout';
 import LeafBurst from '../../src/components/LeafBurst';
-import ConvictionMeter from '../../src/components/ConvictionMeter';
+import ConvictionMeter, { EarnedChips } from '../../src/components/ConvictionMeter';
 import AlternativeCard from '../../src/components/AlternativeCard';
 import ChatBubble from '../../src/components/chat/ChatBubble';
 import TypingDots from '../../src/components/chat/TypingDots';
@@ -99,10 +99,13 @@ export default function Debate() {
   const leaveTimer = useRef(null);
   const decidedRef = useRef(false); // set by the exits, so a late Sprout reply can't undo a decision
 
-  // When the keyboard opens the chat area shrinks; keep the latest message in view.
+  // Keep the newest message in view whenever the chat area changes: new messages, the typing
+  // indicator, reply chips appearing (they shrink the list), alternatives, or the keyboard opening.
+  // The short delay lets the new layout settle before scrolling.
   useEffect(() => {
-    if (keyboardInset > 0) listRef.current?.scrollToEnd({ animated: true });
-  }, [keyboardInset]);
+    const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    return () => clearTimeout(t);
+  }, [messages.length, waiting, suggested, alternatives.length, keyboardInset]);
 
   // Live catalog: used for Sprout's stage and the "spending avoided" total sent as context.
   // (Also kept in a ref so async code always sees the latest list, not a stale closure.)
@@ -303,23 +306,26 @@ export default function Debate() {
         </View>
       )}
 
-      {/* Sprout + conviction meter */}
-      <View style={styles.sproutRow}>
-        <View>
-          <Sprout stage={stage} mood={mood} size={typing ? 56 : 84} shakeKey={shakeKey} />
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <LeafBurst trigger={burstKey} />
+      {/* Sprout + conviction meter, with earned chips full width underneath */}
+      <View style={styles.sproutArea}>
+        <View style={styles.sproutRow}>
+          <View>
+            <Sprout stage={stage} mood={mood} size={typing ? 56 : 84} shakeKey={shakeKey} />
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              <LeafBurst trigger={burstKey} />
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            {item.essential ? (
+              <View style={styles.essentialPill}>
+                <Text style={styles.essentialText}>💚 Genuine need — approved</Text>
+              </View>
+            ) : (
+              <ConvictionMeter criteriaMet={criteriaMet} showChips={false} />
+            )}
           </View>
         </View>
-        <View style={{ flex: 1 }}>
-          {item.essential ? (
-            <View style={styles.essentialPill}>
-              <Text style={styles.essentialText}>💚 Genuine need — approved</Text>
-            </View>
-          ) : (
-            <ConvictionMeter criteriaMet={criteriaMet} />
-          )}
-        </View>
+        {!item.essential && <EarnedChips criteriaMet={criteriaMet} style={{ paddingTop: 6 }} />}
       </View>
 
       {/* Chat */}
@@ -414,15 +420,8 @@ const styles = StyleSheet.create({
   thumbEmoji: { alignItems: 'center', justifyContent: 'center' },
   itemName: { fontSize: 20, fontWeight: '700', color: colors.text },
   itemMeta: { fontSize: font.small, color: colors.muted, marginTop: 2 },
-  sproutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
+  sproutArea: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+  sproutRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   essentialPill: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
   essentialText: { fontSize: font.small, fontWeight: '700', color: colors.primaryDark },
   chat: { padding: 16, paddingBottom: 8 },

@@ -2,10 +2,8 @@
 // expression it had when it said that line; the user's bubbles sit on the right (green).
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import Sprout from '../Sprout';
+import SproutAvatar from './SproutAvatar';
 import { colors, radius, font } from '../../theme';
-
-export const AVATAR_SIZE = 44;
 
 export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
   const isUser = role === 'user';
@@ -29,9 +27,7 @@ export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
   return (
     <Animated.View style={[styles.sproutRow, motion]} accessibilityLabel={`Sprout: ${text}`}>
       {/* still: no idle animation, so a long chat of avatars stays calm */}
-      <View style={styles.avatar}>
-        <Sprout stage={stage} mood={mood} size={AVATAR_SIZE} still />
-      </View>
+      <SproutAvatar stage={stage} mood={mood} still />
       <View style={[styles.bubble, styles.sprout]}>
         <Text style={styles.text}>{text}</Text>
       </View>
@@ -41,15 +37,6 @@ export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
 
 const styles = StyleSheet.create({
   sproutRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 4, maxWidth: '92%' },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   bubble: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.md },
   sprout: {
     flexShrink: 1,
