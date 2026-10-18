@@ -5,6 +5,8 @@
 # Gemini replies vary, so read the printed replies too — but the PASS/FAIL checks must all pass.
 cd "$(dirname "$0")"
 BASE="${1:-http://localhost:3001}"
+BASE="${BASE%/}" # tolerate a trailing slash
+BASE="${BASE%/}" # tolerate a trailing slash
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
