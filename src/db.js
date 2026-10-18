@@ -92,10 +92,9 @@ export async function decideItem(id, decision) {
 }
 
 // Live catalog, newest first. Returns the unsubscribe function.
-// onError (optional) lets a screen show a friendly message instead of spinning forever.
-export function subscribeItems(callback, onError) {
+export function subscribeItems(callback) {
   const q = query(itemsCol(), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snap) => callback(snap.docs.map(fromSnap)), onError);
+  return onSnapshot(q, (snap) => callback(snap.docs.map(fromSnap)));
 }
 
 // Last few items as light context for Sprout ("That's your THIRD hoodie this month").
