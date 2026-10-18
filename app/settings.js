@@ -9,7 +9,7 @@ import { colors, font, radius } from '../src/theme';
 // Number fields shown on screen: [key, label, hint]
 const MONEY_FIELDS = [
   ['hourlyWage', 'Hourly wage ($/hour)', 'Shows how many hours of work an item costs.'],
-  ['goalAmount', 'Savings goal amount ($)', 'Spending you avoid could go toward this.'],
+  ['goalAmount', 'Savings goal amount ($)', 'Money you resist goes toward this.'],
   ['discretionaryBudget', 'Monthly fun-money budget ($)', 'Optional. Sprout estimates what’s left this month from items you mark as bought in this app.'],
 ];
 
