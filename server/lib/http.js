@@ -20,9 +20,12 @@ export function endpoint(handler) {
       // req is passed too, for handlers that need headers (the leaderboard reads Authorization).
       return res.status(200).json(await handler(body, req));
     } catch (e) {
-      // Expected errors carry their own status: bad input (400), not signed in (401), not allowed (403),
-      // server not set up yet (503).
-      if ([400, 401, 403, 503].includes(e.status)) return res.status(e.status).json({ error: e.message });
+      // Expected errors carry their own status: bad input (400), not signed in (401), not allowed (403).
+      // A 503 is only passed through when WE raised it (server not set up yet); Gemini's own 503s
+      // (model overloaded) stay a friendly 502 below.
+      if ([400, 401, 403].includes(e.status) || (e.status === 503 && e.expose)) {
+        return res.status(e.status).json({ error: e.message });
+      }
       console.error(e); // details stay in the server logs
       return res.status(502).json({ error: 'Sprout is having trouble thinking right now.' });
     }
