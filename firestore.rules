@@ -7,8 +7,13 @@ service cloud.firestore {
       return request.auth != null;
     }
     // Social features need a real account (email/password), not an anonymous guest.
+    // A guest upgraded to email/password can keep sign_in_provider 'anonymous' in its token,
+    // so an account with an email counts too. Pure guests have no email claim.
     function registered() {
-      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      return signedIn() && (
+        request.auth.token.firebase.sign_in_provider != 'anonymous'
+        || request.auth.token.get('email', '') != ''
+      );
     }
     function isUser(userId) {
       return signedIn() && request.auth.uid == userId;

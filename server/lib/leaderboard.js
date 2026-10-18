@@ -14,13 +14,12 @@ let admin;
 async function loadAdmin() {
   if (admin) return admin;
   try {
-    const [{ AggregateField }, { adminAuth, adminDb }] = await Promise.all([
+    const [{ AggregateField }, { adminDb, verifyIdToken }] = await Promise.all([
       import('firebase-admin/firestore'),
       import('./firebaseAdmin.js'),
     ]);
-    const auth = adminAuth(); // throws if FIREBASE_SERVICE_ACCOUNT is missing or invalid
-    const db = adminDb();
-    admin = { AggregateField, auth, db };
+    const db = adminDb(); // throws if FIREBASE_SERVICE_ACCOUNT is missing or invalid
+    admin = { AggregateField, db, verifyIdToken };
     return admin;
   } catch (e) {
     console.error('Leaderboard setup failed:', e);
@@ -46,11 +45,13 @@ async function verifiedUser(req) {
   if (!token) throw new HttpError(401, 'Sign in to see the leaderboard.');
   let decoded;
   try {
-    decoded = await (await loadAdmin()).auth.verifyIdToken(token);
+    decoded = await (await loadAdmin()).verifyIdToken(token);
   } catch {
     throw new HttpError(401, 'Your session expired. Please sign in again.');
   }
-  if (decoded.firebase?.sign_in_provider === 'anonymous') {
+  // Same rule as firestore.rules registered(): an upgraded guest may still say 'anonymous'
+  // but has an email; a pure guest has neither.
+  if (decoded.firebase?.sign_in_provider === 'anonymous' && !decoded.email) {
     throw new HttpError(403, 'Create an account to use the leaderboard.');
   }
   return decoded.uid;
