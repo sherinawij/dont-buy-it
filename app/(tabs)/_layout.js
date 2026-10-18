@@ -2,6 +2,7 @@
 // Add, the debate and the share screen open on top of the tabs from the root stack (app/_layout.js).
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AccountButton from '../../src/components/AccountButton';
 import TabIcon from '../../src/components/TabIcon';
 import { useTheme } from '../../src/useTheme';
 
@@ -41,7 +42,12 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Home', headerTitle: "Don't Buy It!", tabBarIcon: ({ color }) => <TabIcon name="home" color={color} /> }}
+        options={{
+          title: 'Home',
+          headerTitle: "Don't Buy It!",
+          headerRight: () => <AccountButton />,
+          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
+        }}
       />
       <Tabs.Screen
         name="achievements"

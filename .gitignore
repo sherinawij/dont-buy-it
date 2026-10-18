@@ -47,3 +47,7 @@ server/.env
 
 # Claude specific
 .claude/settings.json.graphify-bak
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
