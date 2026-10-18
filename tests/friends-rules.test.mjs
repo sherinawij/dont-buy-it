@@ -57,6 +57,9 @@ check('Ben removes Amy', (await allowed('remove', () => removeFriendship(B, a)))
 check('removing again is a harmless no-op', (await removeFriendship(A, b)) === 'nothing');
 check('Amy can ask Ben again later', (await sendFriendRequest(A, b)) === 'sent');
 check('Ben declines', (await removeFriendship(B, a)) === 'removed');
+check('Ben now asks Amy himself', (await sendFriendRequest(B, a)) === 'sent');
+check('a stale "Accept" from Ben (now the requester) is a harmless no-op', (await acceptFriendRequest(B, a)) === 'already-sent');
+check('Amy accepts Ben’s request', (await acceptFriendRequest(A, b)) === 'accepted');
 
 console.log(failed() ? `\n${failed()} FAILED` : '\nAll friendship rule checks passed');
 process.exit(failed() ? 1 : 0);

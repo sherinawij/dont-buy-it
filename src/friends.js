@@ -18,15 +18,22 @@ export const pairId = (a, b) => [a, b].sort().join('_');
 const friendshipRef = (otherUid) => doc(db, 'friendships', pairId(me(), otherUid));
 
 // ---------- Public profiles (display name + username only) ----------
-const profileCache = new Map();
+// Short-lived cache so a friends list doesn't re-read every profile on each change,
+// while renamed friends still show their new name within a minute.
+const PROFILE_TTL_MS = 60 * 1000;
+const profileCache = new Map(); // uid → { profile, at }
 
 export async function getProfile(uid) {
-  if (profileCache.has(uid)) return profileCache.get(uid);
+  const hit = profileCache.get(uid);
+  if (hit && Date.now() - hit.at < PROFILE_TTL_MS) return hit.profile;
   const snap = await getDoc(doc(db, 'profiles', uid));
   const profile = snap.exists() ? { uid, username: snap.data().username, displayName: snap.data().displayName } : null;
-  if (profile) profileCache.set(uid, profile);
+  profileCache.set(uid, { profile, at: Date.now() });
   return profile;
 }
+
+// Last character in Firestore's string order: '<= prefix + END' matches every name starting with prefix.
+const END = String.fromCharCode(0xf8ff);
 
 // Username prefix search (case-insensitive). Never returns emails or anything private.
 export async function searchUsers(text) {
@@ -35,7 +42,7 @@ export async function searchUsers(text) {
   const q = query(
     collection(db, 'profiles'),
     where('usernameLower', '>=', prefix),
-    where('usernameLower', '<=', `${prefix}`),
+    where('usernameLower', '<=', prefix + END),
     orderBy('usernameLower'),
     limit(10)
   );
@@ -48,20 +55,25 @@ export async function searchUsers(text) {
 // ---------- My friendships, live ----------
 // callback receives [{ id, uid, username, displayName, status, direction: 'incoming' | 'outgoing' | 'friends' }]
 export function subscribeFriendships(callback, onError) {
-  const q = query(collection(db, 'friendships'), where('members', 'array-contains', me()));
+  const myUid = me();
+  const q = query(collection(db, 'friendships'), where('members', 'array-contains', myUid));
+  let latest = 0; // snapshots resolve profiles asynchronously; only the newest one may update the screen
   return onSnapshot(
     q,
     async (snap) => {
+      const seq = ++latest;
       try {
         const rows = await Promise.all(
           snap.docs.map(async (d) => {
             const f = d.data();
-            const uid = f.members.find((m) => m !== me());
-            const profile = (await getProfile(uid)) ?? { username: 'unknown', displayName: 'Someone' };
-            const direction = f.status === 'accepted' ? 'friends' : f.requester === me() ? 'outgoing' : 'incoming';
+            const uid = f.members.find((m) => m !== myUid);
+            // A failed lookup (e.g. a network blip) shows a placeholder instead of breaking the whole list.
+            const profile = (await getProfile(uid).catch(() => null)) ?? { username: 'unknown', displayName: 'Someone' };
+            const direction = f.status === 'accepted' ? 'friends' : f.requester === myUid ? 'outgoing' : 'incoming';
             return { id: d.id, uid, username: profile.username, displayName: profile.displayName, status: f.status, direction };
           })
         );
+        if (seq !== latest) return; // a newer snapshot arrived meanwhile
         rows.sort((a, b) => a.username.localeCompare(b.username));
         callback(rows);
       } catch (e) {
@@ -99,13 +111,15 @@ export async function sendFriendRequest(otherUid) {
   });
 }
 
-// Returns 'accepted' | 'already-friends' | 'gone' (they cancelled).
+// Returns 'accepted' | 'already-friends' | 'already-sent' | 'gone' (they cancelled).
 export async function acceptFriendRequest(otherUid) {
   return runTransaction(db, async (tx) => {
     const ref = friendshipRef(otherUid);
     const snap = await tx.get(ref);
     if (!snap.exists()) return 'gone';
     if (snap.data().status === 'accepted') return 'already-friends';
+    // Stale screen: the pending request is now MINE to them, so there's nothing for me to accept.
+    if (snap.data().recipient !== me()) return 'already-sent';
     tx.update(ref, { status: 'accepted', updatedAt: serverTimestamp() });
     return 'accepted';
   });

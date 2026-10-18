@@ -1,11 +1,11 @@
 // Friends: search by username, send / accept / decline / cancel requests, remove friends.
 // Needs an account with a username. Everything is stored in Firestore (friendships/...), not on the phone.
 // Owner: P1 (social features).
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Button, Card } from '../src/components/ui';
 import { useAuthUser } from '../src/auth';
 import { getMyProfile } from '../src/profile';
@@ -17,12 +17,25 @@ import { useStyles, useTheme } from '../src/useTheme';
 
 export default function FriendsScreen() {
   const { guest } = useAuthUser();
-  const [hasProfile, setHasProfile] = useState(undefined); // undefined = checking
+  // 'checking' | 'ready' | 'needs-username' | 'error'
+  const [state, setState] = useState('checking');
+  const [attempt, setAttempt] = useState(0);
 
-  useEffect(() => {
-    if (guest) return;
-    getMyProfile().then((p) => setHasProfile(Boolean(p))).catch(() => setHasProfile(false));
-  }, [guest]);
+  // Re-check every time the screen comes into view, so picking a username on the
+  // profile screen and coming back unlocks Friends straight away.
+  useFocusEffect(
+    useCallback(() => {
+      if (guest) return undefined;
+      let alive = true;
+      getMyProfile()
+        .then((p) => alive && setState(p ? 'ready' : 'needs-username'))
+        // A network error isn't "no username": keep a working screen, or offer a retry.
+        .catch(() => alive && setState((s) => (s === 'ready' ? s : 'error')));
+      return () => {
+        alive = false;
+      };
+    }, [guest, attempt])
+  );
 
   if (guest) {
     return (
@@ -32,17 +45,18 @@ export default function FriendsScreen() {
       />
     );
   }
-  if (hasProfile === undefined) return <Loading />;
-  if (!hasProfile) return <Gate text="Pick a username first so friends can find you." button="Pick a username" />;
+  if (state === 'checking') return <Loading />;
+  if (state === 'error') return <Gate text="Couldn’t check your profile. Check your connection." button="Try again" onPress={() => { setState('checking'); setAttempt((n) => n + 1); }} />;
+  if (state === 'needs-username') return <Gate text="Pick a username first so friends can find you." button="Pick a username" />;
   return <Friends />;
 }
 
-function Gate({ text, button }) {
+function Gate({ text, button, onPress }) {
   const styles = useStyles(makeStyles);
   return (
     <View style={styles.center}>
       <Text style={styles.body}>{text}</Text>
-      <Button title={button} onPress={() => router.push('/profile')} style={{ alignSelf: 'stretch' }} />
+      <Button title={button} onPress={onPress ?? (() => router.push('/profile'))} style={{ alignSelf: 'stretch' }} />
     </View>
   );
 }
@@ -124,6 +138,7 @@ function Friends() {
     act(uid, acceptFriendRequest, {
       accepted: 'You’re now friends!',
       'already-friends': 'You’re already friends.',
+      'already-sent': 'You’ve already asked them. Waiting for their reply.',
       gone: 'That request was cancelled.',
     });
   const decline = (uid) => act(uid, removeFriendship);

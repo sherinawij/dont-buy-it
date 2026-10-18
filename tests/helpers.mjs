@@ -97,6 +97,7 @@ export async function acceptFriendRequest({ auth, db }, otherUid) {
     const snap = await tx.get(ref);
     if (!snap.exists()) return 'gone';
     if (snap.data().status === 'accepted') return 'already-friends';
+    if (snap.data().recipient !== auth.currentUser.uid) return 'already-sent';
     tx.update(ref, { status: 'accepted', updatedAt: serverTimestamp() });
     return 'accepted';
   });
@@ -109,4 +110,35 @@ export async function removeFriendship({ auth, db }, otherUid) {
     if (snap.exists()) tx.delete(ref);
     return snap.exists() ? 'removed' : 'nothing';
   });
+}
+
+// ---------- Items: same write shapes as src/db.js (createItem / updateItem / decideItem) ----------
+import { addDoc, collection, updateDoc } from 'firebase/firestore';
+
+export async function createItem({ auth, db }, item) {
+  const ref = await addDoc(collection(db, 'users', auth.currentUser.uid, 'items'), {
+    name: item.name,
+    category: item.category ?? 'other',
+    price: item.price ?? null,
+    estimatedPrice: item.estimatedPrice ?? null,
+    link: item.link ?? null,
+    essential: Boolean(item.essential),
+    messages: item.messages ?? [{ role: 'sprout', text: 'NO.' }],
+    criteriaMet: item.criteriaMet ?? [],
+    status: 'debating',
+    outcome: null,
+    createdAt: serverTimestamp(),
+    decidedAt: null,
+  });
+  return ref.id;
+}
+export const updateItem = ({ auth, db }, id, patch) => updateDoc(doc(db, 'users', auth.currentUser.uid, 'items', id), patch);
+export const decideItem = ({ auth, db }, id, decision) =>
+  updateDoc(doc(db, 'users', auth.currentUser.uid, 'items', id), { ...decision, decidedAt: serverTimestamp() });
+
+// Create + decide in one go (the normal "Don't buy it" / "Buy anyway" path).
+export async function decidedItem(p, item, decision) {
+  const id = await createItem(p, item);
+  await decideItem(p, id, decision);
+  return id;
 }

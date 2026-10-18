@@ -14,10 +14,48 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    // ---------- Private data (unchanged) ----------
-    // Each user can only read and write their own data under users/{uid}: settings, items, debates.
-    match /users/{userId}/{document=**} {
+    // ---------- Private data ----------
+    // Each user can only read and write their own data under users/{uid}.
+    match /users/{userId} {
+      // Settings doc: owner only.
       allow read, write: if isUser(userId);
+
+      // Items feed "spending avoided" (Home's jar, Sprout, and the friends leaderboard), so writes are
+      // validated: real amounts, known statuses, and a decision can't be changed or re-counted later.
+      match /items/{itemId} {
+        allow read, delete: if isUser(userId);
+        allow create: if isUser(userId) && validItem(request.resource.data)
+          && request.resource.data.status == 'debating'
+          && request.resource.data.get('decidedAt', null) == null;
+        allow update: if isUser(userId) && validItem(request.resource.data)
+          && (resource.data.status == 'debating' || lockedAfterDecision());
+      }
+
+      // Any other private sub-collection: owner only (same as before).
+      match /{collection}/{document=**} {
+        allow read, write: if isUser(userId) && collection != 'items';
+      }
+    }
+
+    function money(v) {
+      return v == null || ((v is int || v is float) && v >= 0 && v <= 1000000);
+    }
+    function validItem(d) {
+      return d.name is string && d.name.size() <= 200
+        && money(d.get('price', null))
+        && money(d.get('estimatedPrice', null))
+        && money(d.get('alternativePrice', null))
+        && d.status in ['debating', 'resisted', 'bought']
+        && (d.get('outcome', null) == null || d.outcome in ['sprout_won', 'user_won', 'overridden', 'essential', 'alternative'])
+        && d.get('messages', []) is list && d.get('messages', []).size() <= 200;
+    }
+    // Once decided, the debate can still save messages, but the decision and the amounts are fixed.
+    function lockedAfterDecision() {
+      return request.resource.data.status == resource.data.status
+        && request.resource.data.get('outcome', null) == resource.data.get('outcome', null)
+        && request.resource.data.get('price', null) == resource.data.get('price', null)
+        && request.resource.data.get('estimatedPrice', null) == resource.data.get('estimatedPrice', null)
+        && request.resource.data.get('decidedAt', null) == resource.data.get('decidedAt', null);
     }
 
     // ---------- Public profiles ----------
