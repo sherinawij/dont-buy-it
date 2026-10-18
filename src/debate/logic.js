@@ -56,10 +56,15 @@ export function buyOutcome(item, conceded) {
   return conceded ? 'user_won' : 'overridden';
 }
 
-// Google search link for an alternative, e.g. "laptop charger refurbished". We never invent product URLs.
+// Things you can BUY (used, refurbished, lower-waste) open Google Shopping: real listings with real
+// photos and prices. Services (repair, borrow, rent) open a normal search. We never invent product URLs.
+const SHOPPABLE = ['used', 'refurbished', 'eco'];
+export const isShoppable = (type) => SHOPPABLE.includes(type);
+
 export function alternativeSearchUrl(itemName, type) {
   const suffix = ALT_TYPES[type]?.searchSuffix ?? 'used';
-  return 'https://www.google.com/search?q=' + encodeURIComponent(`${itemName} ${suffix}`);
+  const q = encodeURIComponent(`${itemName} ${suffix}`);
+  return isShoppable(type) ? `https://www.google.com/search?tbm=shop&q=${q}` : `https://www.google.com/search?q=${q}`;
 }
 
 // Keep only alternatives with a type we know how to show.
