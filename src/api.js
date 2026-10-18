@@ -41,7 +41,13 @@ export async function analyzeItem(body) {
 let cannedCounter = 0;
 export async function chatWithSprout(body) {
   try {
-    const data = await post('/api/chat', body);
+    // Respect the server's guards: only the item fields it needs, last 20 messages, ≤500 chars each.
+    const { name, category, price, estimatedPrice, essential } = body.item;
+    const data = await post('/api/chat', {
+      ...body,
+      item: { name, category, price, estimatedPrice, essential },
+      messages: body.messages.slice(-20).map((m) => ({ role: m.role, text: m.text.slice(0, 500) })),
+    });
     return { criteriaHit: [], suggestedReplies: [], ...data, fallback: false };
   } catch (e) {
     // Offline/timeout: a canned line for the current escalation stage, and no criteria hits.
