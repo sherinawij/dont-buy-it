@@ -2,7 +2,8 @@
 // Both functions are safe to call: on any failure the app falls back so the demo never breaks.
 import { CANNED_LINES, stageForTurn } from './config';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// Strip any trailing slash so "https://x.vercel.app/" and "https://x.vercel.app" both work.
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
 const TIMEOUT_MS = 20000;
 
 async function post(path, body) {
