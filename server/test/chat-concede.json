@@ -1,0 +1,13 @@
+{
+  "item": { "name": "Replacement laptop charger", "category": "electronics", "price": 45, "essential": false },
+  "messages": [
+    { "role": "sprout", "text": "A CHARGER? Absolutely not. What happened to the one you have?!" },
+    { "role": "user", "text": "My charger's cable split and won't charge anymore" },
+    { "role": "sprout", "text": "Tape exists. Have you heard of tape?!" },
+    { "role": "user", "text": "I use my laptop for every lecture and my shift scheduling, 6 days a week" },
+    { "role": "sprout", "text": "…okay, fine, that one was good. But did you even LOOK at other options?" },
+    { "role": "user", "text": "I checked a refurbished one for $25 but it's not compatible with my model" }
+  ],
+  "criteriaMet": ["replaces_broken", "frequent_use", "compared_options"], "turn": 3, "totalSaved": 0, "history": [],
+  "conceded": true, "finalPlea": false, "resumed": false
+}

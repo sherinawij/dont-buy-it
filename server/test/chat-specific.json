@@ -1,0 +1,9 @@
+{
+  "item": { "name": "Replacement laptop charger", "category": "electronics", "price": 45, "essential": false },
+  "messages": [
+    { "role": "sprout", "text": "A CHARGER? Absolutely not. What happened to the one you have?!" },
+    { "role": "user", "text": "My charger's cable split and won't charge anymore" }
+  ],
+  "criteriaMet": [], "turn": 1, "totalSaved": 0, "history": [],
+  "conceded": false, "finalPlea": false, "resumed": false
+}

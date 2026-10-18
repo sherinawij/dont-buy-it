@@ -1,0 +1,13 @@
+{
+  "item": { "name": "Grey pullover hoodie", "category": "clothing", "price": 60, "essential": false },
+  "messages": [
+    { "role": "sprout", "text": "NO. Absolutely not. Put the phone down." },
+    { "role": "user", "text": "I'll use it a lot, I need it" }
+  ],
+  "criteriaMet": [], "turn": 1, "hoursOfWork": 3, "savingsGoal": "Trip to Montreal", "goalAmount": 500,
+  "totalSaved": 0, "history": [
+    { "name": "Black zip hoodie", "category": "clothing", "status": "bought", "outcome": "overridden" },
+    { "name": "Fleece hoodie", "category": "clothing", "status": "resisted", "outcome": "sprout_won" }
+  ],
+  "conceded": false, "finalPlea": false, "resumed": false
+}
