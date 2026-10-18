@@ -9,7 +9,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 post() { # post <path> <body file>
-  curl -s -w '\n%{http_code}' -X POST -H 'Content-Type: application/json' --data-binary @"$2" "$BASE$1"
+  curl -s -w '\n%{http_code} %{time_total}' -X POST -H 'Content-Type: application/json' --data-binary @"$2" "$BASE$1"
 }
 
 echo "== Guards (no Gemini call needed) =="
@@ -24,7 +24,7 @@ node -e "console.log(JSON.stringify({item:{name:'x'},messages:[{role:'user',text
 post /api/chat "$TMP/long.json" | node expect.js "501-character message → 400" 'status===400'
 node -e "console.log(JSON.stringify({imageBase64:'A'.repeat(2200000)}))" > "$TMP/huge.json"
 post /api/analyze "$TMP/huge.json" | node expect.js "~1.6 MB image → 400" 'status===400'
-curl -s -w '\n%{http_code}' "$BASE/api/chat" | node expect.js "GET → 405" 'status===405'
+curl -s -w '\n%{http_code} %{time_total}' "$BASE/api/chat" | node expect.js "GET → 405" 'status===405'
 
 echo; echo "== /api/analyze =="
 node -e "const fs=require('fs');console.log(JSON.stringify({imageBase64:fs.readFileSync('hoodie.jpg').toString('base64'),history:[]}))" > "$TMP/hoodie.json"
