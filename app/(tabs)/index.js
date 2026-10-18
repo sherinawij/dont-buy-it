@@ -9,10 +9,11 @@ import MoneyPop from '../../src/components/MoneyPop';
 import LeafBurst from '../../src/components/LeafBurst';
 import NightSky from '../../src/components/NightSky';
 import ItemCard from '../../src/components/ItemCard';
+import StageStrip from '../../src/components/StageStrip';
 import DebatingCard from '../../src/components/DebatingCard';
 import { Button, Card } from '../../src/components/ui';
 import { getSettings, subscribeItems } from '../../src/db';
-import { formatMoney, goalProgress, remainingBudget, totalSaved } from '../../src/calc';
+import { formatMoney, goalProgress, positiveDecisions, remainingBudget, totalSaved } from '../../src/calc';
 import { getSproutState } from '../../src/sproutState';
 import { HOME_LINES } from '../../src/config';
 import { font, radius } from '../../src/theme';
@@ -159,6 +160,8 @@ export default function Home() {
           </Text>
         )}
       </Card>
+
+      <StageStrip stage={sprout.stage} totalAvoided={total} decisions={positiveDecisions(items)} />
 
       <Button title="I want to buy something…" onPress={onWantToBuy} style={styles.bigButton} />
 
