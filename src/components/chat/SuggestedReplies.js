@@ -1,13 +1,20 @@
 // Tap-to-send reply chips (the server always includes one surrender option).
-// Chips wrap onto new lines instead of scrolling sideways: a horizontal ScrollView inside a column
-// stretches vertically on phones, which made the chips tall and bubble-shaped.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+// One compact row that scrolls sideways, so the chat keeps its space on small phones.
+// flexGrow: 0 matters: without it a horizontal ScrollView inside a column stretches vertically,
+// which is what made the chips tall and bubble-shaped before.
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { colors, font } from '../../theme';
 
 export default function SuggestedReplies({ replies, onPick, disabled }) {
   if (!replies?.length) return null;
   return (
-    <View style={styles.wrap}>
+    <ScrollView
+      horizontal
+      style={styles.scroll}
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.row}
+    >
       {replies.map((r) => (
         <Pressable
           key={r}
@@ -15,26 +22,27 @@ export default function SuggestedReplies({ replies, onPick, disabled }) {
           disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={`Reply: ${r}`}
-          hitSlop={4}
           style={({ pressed }) => [styles.chip, (pressed || disabled) && { opacity: 0.5 }]}
         >
           <Text style={styles.text} numberOfLines={2}>{r}</Text>
         </Pressable>
       ))}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  scroll: { flexGrow: 0, flexShrink: 0 },
+  row: { gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, alignItems: 'center' },
   chip: {
-    maxWidth: '100%',
-    borderRadius: 18,
+    maxWidth: 240, // long replies wrap to two lines; the next chip peeks in to show the row scrolls
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.primary,
     backgroundColor: colors.card,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
   },
-  text: { fontSize: font.small, lineHeight: 19, color: colors.primaryDark, fontWeight: '600' },
+  text: { fontSize: font.small, lineHeight: 18, color: colors.primaryDark, fontWeight: '600' },
 });
