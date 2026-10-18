@@ -117,8 +117,10 @@ function AccountProfile({ email }) {
           <Text style={styles.small}>Signed in as {email} (only you can see this)</Text>
         </Card>
 
-        {settingUp && (
+        {settingUp ? (
           <Text style={styles.body}>Friends find you by your username. They’ll see your display name and username, never your email.</Text>
+        ) : (
+          <Button title="👥 Friends" onPress={() => router.push('/friends')} />
         )}
 
         <View style={styles.field}>

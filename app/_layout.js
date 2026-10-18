@@ -77,6 +77,7 @@ export default function RootLayout() {
         <Stack.Screen name="achievement/[key]" options={{ title: 'Share your win' }} />
         <Stack.Screen name="auth" options={{ title: 'Your account' }} />
         <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+        <Stack.Screen name="friends" options={{ title: 'Friends' }} />
       </Stack>
     </>
   );
