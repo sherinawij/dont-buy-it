@@ -1,23 +1,29 @@
 // Home: Sprout (the hero), the "spending avoided" jar, and the live catalog.
 // Everything shown is derived from Firestore items, so it updates live and survives restarts.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Sprout from '../src/components/Sprout';
-import MoneyPop from '../src/components/MoneyPop';
-import LeafBurst from '../src/components/LeafBurst';
-import ItemCard from '../src/components/ItemCard';
-import { Button, Card } from '../src/components/ui';
-import { getSettings, subscribeItems } from '../src/db';
-import { formatMoney, goalProgress, remainingBudget, totalSaved } from '../src/calc';
-import { getSproutState } from '../src/sproutState';
-import { HOME_LINES } from '../src/config';
-import { colors, font, radius } from '../src/theme';
+import Sprout from '../../src/components/Sprout';
+import MoneyPop from '../../src/components/MoneyPop';
+import LeafBurst from '../../src/components/LeafBurst';
+import NightSky from '../../src/components/NightSky';
+import ItemCard from '../../src/components/ItemCard';
+import StageStrip from '../../src/components/StageStrip';
+import DebatingCard from '../../src/components/DebatingCard';
+import { Button, Card } from '../../src/components/ui';
+import { getSettings, subscribeItems } from '../../src/db';
+import { formatMoney, goalProgress, positiveDecisions, remainingBudget, totalSaved } from '../../src/calc';
+import { getSproutState } from '../../src/sproutState';
+import { HOME_LINES } from '../../src/config';
+import { font, radius } from '../../src/theme';
+import { useStyles, useTheme } from '../../src/useTheme';
 
 const PANIC_MS = 600; // how long Sprout panics before the Add screen opens
 
 export default function Home() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [items, setItems] = useState(null); // null = still loading
   const [loadError, setLoadError] = useState(false);
   const [settings, setSettings] = useState({});
@@ -108,11 +114,14 @@ export default function Home() {
   const line = panicking ? HOME_LINES.panicking[0] : sprout.line;
   const progress = goalProgress(total, settings.goalAmount);
   const left = remainingBudget(items, settings.discretionaryBudget, now);
+  const debating = items.filter((i) => i.status === 'debating');
+  const decided = items.filter((i) => i.status !== 'debating');
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Hero: Sprout + speech bubble */}
       <View style={styles.hero}>
+        <NightSky />
         <View style={styles.bubble}>
           <Text style={styles.bubbleText}>{line}</Text>
           <View style={styles.bubbleTail} />
@@ -152,46 +161,47 @@ export default function Home() {
         )}
       </Card>
 
+      <StageStrip stage={sprout.stage} totalAvoided={total} decisions={positiveDecisions(items)} />
+
       <Button title="I want to buy something…" onPress={onWantToBuy} style={styles.bigButton} />
 
-      <View style={styles.links}>
-        <LinkChip title="🏆 Your wins" onPress={() => router.push('/achievements')} />
-        <LinkChip title="📅 Your week" onPress={() => router.push('/summary')} />
-        <LinkChip title="⚙️ Settings" onPress={() => router.push('/settings')} />
-      </View>
+      {/* Open debates first, so it's easy to pick the fight back up */}
+      {debating.length > 0 && (
+        <>
+          <Text style={styles.section}>Still debating</Text>
+          {debating.map((item) => (
+            <DebatingCard key={item.id} item={item} onResume={() => router.push(`/debate/${item.id}?resume=1`)} />
+          ))}
+        </>
+      )}
 
-      <Text style={styles.section}>Your catalog</Text>
+      {(decided.length > 0 || items.length === 0) && <Text style={styles.section}>Your catalog</Text>}
       {items.length === 0 ? (
         <Card style={styles.empty}>
           <Text style={styles.emptyTitle}>Nothing here yet 🌱</Text>
           <Text style={styles.muted}>Tempted by something? Tap the big button and let Sprout weigh in first.</Text>
         </Card>
       ) : (
-        items.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            // Only open debates can be reopened; Sprout picks the fight back up.
-            onPress={item.status === 'debating' ? () => router.push(`/debate/${item.id}?resume=1`) : undefined}
-          />
-        ))
+        decided.map((item) => <ItemCard key={item.id} item={item} />)
       )}
     </ScrollView>
   );
 }
 
-function LinkChip({ title, onPress }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.chip, pressed && { opacity: 0.6 }]}>
-      <Text style={styles.chipText}>{title}</Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 14, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  hero: { alignItems: 'center', gap: 4, paddingTop: 4 },
+  // Mint panel on Greenhouse, deep green night on Midnight Garden.
+  hero: {
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 16,
+    paddingBottom: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.lg,
+    backgroundColor: colors.hero,
+    overflow: 'hidden',
+  },
   bubble: {
     backgroundColor: colors.card,
     borderRadius: radius.md,
@@ -224,16 +234,6 @@ const styles = StyleSheet.create({
   track: { height: 10, borderRadius: 5, backgroundColor: colors.primarySoft, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 5, backgroundColor: colors.leaf },
   bigButton: { paddingVertical: 20 },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  chip: {
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  chipText: { fontSize: font.small + 1, fontWeight: '700', color: colors.primaryDark },
   section: { fontSize: font.title - 4, fontWeight: '800', color: colors.text, marginTop: 10 },
   empty: { alignItems: 'center', gap: 6 },
   emptyTitle: { fontSize: font.body, fontWeight: '700', color: colors.text },

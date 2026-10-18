@@ -38,6 +38,17 @@ const stageFrom = (value, thresholds) => thresholds.filter((t) => value >= t).le
 export const plantStageFor = (totalAvoided, decisions) =>
   Math.max(stageFrom(totalAvoided, PLANT_STAGE_THRESHOLDS), stageFrom(decisions, DECISION_STAGE_THRESHOLDS));
 
+// What it takes to reach the next stage: either one is enough. null when Sprout is fully grown.
+// → { money: dollars still to avoid, decisions: positive decisions still to make }
+export function nextStageNeeds(totalAvoided, decisions) {
+  const next = plantStageFor(totalAvoided, decisions) + 1;
+  if (next >= PLANT_STAGE_THRESHOLDS.length) return null;
+  return {
+    money: Math.max(0, Math.ceil(PLANT_STAGE_THRESHOLDS[next] - totalAvoided)),
+    decisions: Math.max(0, DECISION_STAGE_THRESHOLDS[next] - decisions),
+  };
+}
+
 // How much of the savings goal the avoided spending could cover: 0..1, or null if no goal is set.
 export function goalProgress(total, goalAmount) {
   if (!(goalAmount > 0)) return null;

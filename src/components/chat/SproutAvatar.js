@@ -3,13 +3,14 @@
 // (120, 150) in the 240×260 drawing for every growth stage.
 import { StyleSheet, View } from 'react-native';
 import Sprout from '../Sprout';
-import { colors } from '../../theme';
+import { useStyles } from '../../useTheme';
 
 export const AVATAR_SIZE = 44;
 const ZOOM = 2.15; // Sprout drawn at ~2× the circle, so the head fills it
 const HEAD_Y = 150 / 260; // head centre, as a fraction of the drawing's height
 
 export default function SproutAvatar({ mood, stage, size = AVATAR_SIZE, still = false }) {
+  const styles = useStyles(makeStyles);
   const inner = size * ZOOM;
   return (
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
@@ -20,6 +21,6 @@ export default function SproutAvatar({ mood, stage, size = AVATAR_SIZE, still = 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   circle: { backgroundColor: colors.primarySoft, overflow: 'hidden', borderWidth: 1.5, borderColor: colors.border },
 });

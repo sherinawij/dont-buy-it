@@ -1,16 +1,37 @@
-// Root layout: signs the user in anonymously, then shows the screen stack.
-// No login screens — Firebase gives every phone its own private, anonymous account.
-import { useEffect, useState } from 'react';
+// Root layout: makes sure someone is signed in, then shows the screen stack.
+// Everyone starts as a private anonymous GUEST, so the app works with no login screens.
+// Optional accounts (for friends + leaderboard) live in src/auth.js and app/auth.js.
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text, View, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth, firebaseConfigured } from '../src/firebase';
 import { ensureUserDoc } from '../src/db';
-import { colors, font } from '../src/theme';
+import { font } from '../src/theme';
+import { ThemeProvider, useStyles, useTheme } from '../src/useTheme';
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
+  return (
+    <ThemeProvider>
+      <AppStack />
+    </ThemeProvider>
+  );
+}
+
+function AppStack() {
+  const { colors, scheme } = useTheme();
+  const styles = useStyles(makeStyles);
+  // Navigation's own backgrounds (behind the floating tab bar, during transitions) follow our palette.
+  const navigationTheme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: { ...base.colors, background: colors.bg, card: colors.bg, text: colors.text, border: colors.border, primary: colors.primary },
+    };
+  }, [scheme, colors]);
+  // The signed-in user's id. null while signing in (or between accounts).
+  const [uid, setUid] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -20,11 +41,12 @@ export default function RootLayout() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (!user) {
-          await signInAnonymously(auth); // triggers this listener again with the new user
+          setUid(null); // unmount screens so nothing keeps listening to the old account
+          await signInAnonymously(auth); // triggers this listener again with the new guest
           return;
         }
         await ensureUserDoc();
-        setReady(true);
+        setUid(user.uid);
       } catch (e) {
         setError(e.message);
       }
@@ -32,7 +54,7 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  if (!firebaseConfigured || error || !ready) {
+  if (!firebaseConfigured || error || !uid) {
     return (
       <View style={styles.center}>
         {!firebaseConfigured ? (
@@ -50,9 +72,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <StatusBar style="dark" />
+    <NavigationThemeProvider value={navigationTheme}>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {/* key={uid}: switching accounts remounts every screen, so no data from the
+          previous account (catalog, Sprout, wins) can linger on screen. */}
       <Stack
+        key={uid}
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerShadowVisible: false,
@@ -61,19 +86,21 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: "Don't Buy It!" }} />
+        {/* Home, Wins, Week and Settings live in app/(tabs); its tabs draw their own headers */}
+        <Stack.Screen name="(tabs)" options={{ title: 'Home', headerShown: false }} />
         <Stack.Screen name="add" options={{ title: 'Something new?' }} />
         <Stack.Screen name="debate/[id]" options={{ title: 'Sprout vs. You' }} />
-        <Stack.Screen name="summary" options={{ title: 'Your week' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-        <Stack.Screen name="achievements" options={{ title: 'Your wins' }} />
         <Stack.Screen name="achievement/[key]" options={{ title: 'Share your win' }} />
+        <Stack.Screen name="auth" options={{ title: 'Your account' }} />
+        <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+        <Stack.Screen name="friends" options={{ title: 'Friends' }} />
+        <Stack.Screen name="leaderboard" options={{ title: 'Leaderboard' }} />
       </Stack>
-    </>
+    </NavigationThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: colors.bg, gap: 16 },
   message: { fontSize: font.body, color: colors.text, textAlign: 'center' },
 });

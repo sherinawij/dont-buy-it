@@ -1,11 +1,12 @@
 // "Your week": friendly stats for the last 7 days, all computed in src/calc.js from Firestore items.
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
-import { Card } from '../src/components/ui';
-import { subscribeItems } from '../src/db';
-import { formatMoney, weeklyStats } from '../src/calc';
-import { categoryInfo } from '../src/config';
-import { colors, font } from '../src/theme';
+import { Card } from '../../src/components/ui';
+import { subscribeItems } from '../../src/db';
+import { formatMoney, weeklyStats } from '../../src/calc';
+import { categoryInfo } from '../../src/config';
+import { font } from '../../src/theme';
+import { useStyles, useTheme } from '../../src/useTheme';
 
 const TIME_LABELS = {
   morning: '🌅 Mornings',
@@ -15,6 +16,8 @@ const TIME_LABELS = {
 };
 
 export default function Summary() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [items, setItems] = useState(null);
   const [loadError, setLoadError] = useState(false);
 
@@ -93,6 +96,7 @@ export default function Summary() {
 }
 
 function Stat({ value, label }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -109,7 +113,7 @@ function recordLine(sprout, you) {
   return 'Dead even. Sprout demands a rematch.';
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 14, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
   hero: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },

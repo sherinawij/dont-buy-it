@@ -14,7 +14,8 @@ import { savePhoto } from '../src/photos';
 import { useKeyboardInset } from '../src/useKeyboardInset';
 import { parseAmount } from '../src/calc';
 import { CANNED_LINES, CATEGORIES } from '../src/config';
-import { colors, font, radius } from '../src/theme';
+import { font, radius } from '../src/theme';
+import { useStyles, useTheme } from '../src/useTheme';
 import { Button, Card } from '../src/components/ui';
 import Sprout from '../src/components/Sprout';
 
@@ -40,6 +41,8 @@ function validAnalysis(data) {
 }
 
 export default function Add() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const keyboard = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
@@ -242,7 +245,7 @@ export default function Add() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 20, gap: 18, maxWidth: 600, width: '100%', alignSelf: 'center' },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 8 },

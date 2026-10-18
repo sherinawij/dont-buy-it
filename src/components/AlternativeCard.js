@@ -5,9 +5,11 @@
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ALT_TYPES, categoryInfo } from '../config';
 import { alternativeSearchUrl, isShoppable } from '../debate/logic';
-import { colors, radius, font } from '../theme';
+import { radius, font } from '../theme';
+import { useStyles } from '../useTheme';
 
 export default function AlternativeCard({ alternative, itemName, category, photoUri }) {
+  const styles = useStyles(makeStyles);
   const info = ALT_TYPES[alternative.type];
   if (!info) return null;
   const url = alternativeSearchUrl(itemName, alternative.type);
@@ -45,7 +47,7 @@ export default function AlternativeCard({ alternative, itemName, category, photo
 
 const TILE = 84;
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     gap: 12,
@@ -91,5 +93,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
-  ctaText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  ctaText: { color: colors.onPrimary, fontSize: 13, fontWeight: '700' },
 });
