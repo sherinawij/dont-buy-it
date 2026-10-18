@@ -9,9 +9,12 @@ import { Button, Card } from '../src/components/ui';
 import { authErrorMessage, register, signIn, useAuthUser, validateCredentials } from '../src/auth';
 import { subscribeItems } from '../src/db';
 import { formatMoney, totalSaved } from '../src/calc';
-import { colors, font, radius } from '../src/theme';
+import { font, radius } from '../src/theme';
+import { useStyles, useTheme } from '../src/useTheme';
 
 export default function AuthScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const params = useLocalSearchParams();
   const { guest } = useAuthUser();
   const [mode, setMode] = useState(params.mode === 'signin' ? 'signin' : 'register');
@@ -147,7 +150,7 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 16, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
   body: { fontSize: font.body, color: colors.text },

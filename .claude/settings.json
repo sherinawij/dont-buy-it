@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Andrew/AppData/Roaming/Python/Python314/Scripts/graphify.EXE hook-guard search",
+            "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/graphify hook-guard search",
             "timeout": 10
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Andrew/AppData/Roaming/Python/Python314/Scripts/graphify.EXE hook-guard read",
+            "command": "/Library/Frameworks/Python.framework/Versions/3.10/bin/graphify hook-guard read",
             "timeout": 10
           }
         ]

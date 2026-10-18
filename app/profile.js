@@ -18,9 +18,12 @@ import { subscribeItems } from '../src/db';
 import { subscribeFriendships } from '../src/friends';
 import { formatMoney, plantStageFor, positiveDecisions, totalSaved } from '../src/calc';
 import { deriveAchievements, STAGE_NAMES } from '../src/achievements';
-import { colors, font, radius } from '../src/theme';
+import { font, radius } from '../src/theme';
+import { useStyles, useTheme } from '../src/useTheme';
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const { user, guest } = useAuthUser();
   const [items, setItems] = useState(null); // my catalog, live (null = loading)
   useEffect(() => subscribeItems(setItems, () => setItems([])), []);
@@ -48,6 +51,7 @@ function statsFor(items) {
 }
 
 function Hero({ stage, title, subtitle, children }) {
+  const styles = useStyles(makeStyles);
   return (
     <Card style={styles.hero}>
       <Sprout stage={stage} mood="happy" size={110} />
@@ -61,6 +65,7 @@ function Hero({ stage, title, subtitle, children }) {
 }
 
 function StatsGrid({ stats, friends }) {
+  const styles = useStyles(makeStyles);
   const tiles = [
     { label: 'Spending avoided', value: formatMoney(stats.avoided) },
     { label: 'Said no to', value: `${stats.resisted} ${stats.resisted === 1 ? 'item' : 'items'}` },
@@ -80,6 +85,7 @@ function StatsGrid({ stats, friends }) {
 }
 
 function LinkRow({ emoji, title, detail, badge, onPress }) {
+  const styles = useStyles(makeStyles);
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}>
       <Text style={styles.linkEmoji}>{emoji}</Text>
@@ -99,6 +105,7 @@ function LinkRow({ emoji, title, detail, badge, onPress }) {
 
 // ---------- Guests ----------
 function GuestProfile({ items }) {
+  const styles = useStyles(makeStyles);
   const stats = statsFor(items);
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -124,6 +131,8 @@ function GuestProfile({ items }) {
 
 // ---------- Accounts ----------
 function AccountProfile({ email, items }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [profile, setProfile] = useState(undefined); // undefined = loading, null = not set up yet
   const [loadError, setLoadError] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -251,6 +260,8 @@ function AccountProfile({ email, items }) {
 
 // Username + display name form. Usernames are unique (any capitalisation), enforced by Firestore rules too.
 function EditProfile({ initial, onSaved, onCancel }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [username, setUsername] = useState(initial?.username ?? '');
   const [displayName, setDisplayName] = useState(initial?.displayName ?? '');
   const [error, setError] = useState('');
@@ -310,7 +321,7 @@ function EditProfile({ initial, onSaved, onCancel }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 14, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.primarySoft, borderColor: colors.primarySoft },
@@ -353,7 +364,7 @@ const styles = StyleSheet.create({
   linkTitle: { fontSize: font.body, fontWeight: '700', color: colors.text },
   chevron: { fontSize: 24, color: colors.muted },
   badge: { backgroundColor: colors.primary, borderRadius: 999, minWidth: 24, paddingHorizontal: 7, paddingVertical: 2, alignItems: 'center' },
-  badgeText: { color: '#fff', fontWeight: '800', fontSize: font.small },
+  badgeText: { color: colors.onPrimary, fontWeight: '800', fontSize: font.small },
   invite: { gap: 10 },
   inviteTitle: { fontSize: font.body + 2, fontWeight: '800', color: colors.text },
   privacy: { backgroundColor: colors.bg },

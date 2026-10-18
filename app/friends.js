@@ -12,7 +12,8 @@ import { getMyProfile } from '../src/profile';
 import {
   acceptFriendRequest, friendsErrorMessage, removeFriendship, searchUsers, sendFriendRequest, subscribeFriendships,
 } from '../src/friends';
-import { colors, font, radius } from '../src/theme';
+import { font, radius } from '../src/theme';
+import { useStyles, useTheme } from '../src/useTheme';
 
 export default function FriendsScreen() {
   const { guest } = useAuthUser();
@@ -37,6 +38,7 @@ export default function FriendsScreen() {
 }
 
 function Gate({ text, button }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.center}>
       <Text style={styles.body}>{text}</Text>
@@ -45,13 +47,19 @@ function Gate({ text, button }) {
   );
 }
 
-const Loading = () => (
-  <View style={styles.center}>
-    <ActivityIndicator size="large" color={colors.primary} />
-  </View>
-);
+function Loading() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+  );
+}
 
 function Friends() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const [rows, setRows] = useState(null); // my friendships, live; null = loading
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
@@ -219,6 +227,7 @@ function Friends() {
 }
 
 function PersonRow({ person, children }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
@@ -231,6 +240,8 @@ function PersonRow({ person, children }) {
 }
 
 function SmallButton({ title, onPress, disabled, variant = 'primary' }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const primary = variant === 'primary';
   return (
     <Pressable
@@ -243,12 +254,12 @@ function SmallButton({ title, onPress, disabled, variant = 'primary' }) {
         (pressed || disabled) && { opacity: 0.5 },
       ]}
     >
-      <Text style={[styles.smallText, { color: primary ? '#fff' : colors.primaryDark }]}>{title}</Text>
+      <Text style={[styles.smallText, { color: primary ? colors.onPrimary : colors.primaryDark }]}>{title}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 10, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
   body: { fontSize: font.body, color: colors.text, textAlign: 'center', lineHeight: 24 },

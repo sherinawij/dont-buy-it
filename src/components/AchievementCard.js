@@ -5,12 +5,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import Sprout from './Sprout';
 import { categoryInfo } from '../config';
 import { formatMoney } from '../calc';
-import { colors, radius } from '../theme';
+import { radius } from '../theme';
+import { useStyles } from '../useTheme';
 
 export const CARD_WIDTH = 320;
 export const CARD_HEIGHT = 400; // 4:5, like a 1080×1350 social post
 
 const AchievementCard = forwardRef(function AchievementCard({ achievement: a }, ref) {
+  const styles = useStyles(makeStyles);
   const date = new Date(a.earnedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const showItem = a.itemName && a.type !== 'milestone';
 
@@ -47,7 +49,7 @@ const AchievementCard = forwardRef(function AchievementCard({ achievement: a }, 
 
 export default AchievementCard;
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,

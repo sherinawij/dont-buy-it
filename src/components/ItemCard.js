@@ -4,10 +4,12 @@ import StatusPill from './StatusPill';
 import { categoryInfo } from '../config';
 import { formatMoney } from '../calc';
 import { usePhoto } from '../photos';
-import { colors, font, radius } from '../theme';
+import { font, radius } from '../theme';
+import { useStyles } from '../useTheme';
 
 // onPress is only passed for items that can be reopened (still debating).
 export default function ItemCard({ item, onPress }) {
+  const styles = useStyles(makeStyles);
   const { emoji, label } = categoryInfo(item.category);
   const photo = usePhoto(item.id);
   // "≈" marks Sprout's estimate when the user didn't type a price.
@@ -39,7 +41,7 @@ export default function ItemCard({ item, onPress }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',

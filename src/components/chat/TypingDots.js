@@ -3,9 +3,11 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import SproutAvatar from './SproutAvatar';
-import { colors, radius } from '../../theme';
+import { radius } from '../../theme';
+import { useStyles } from '../../useTheme';
 
 export default function TypingDots({ mood = 'smug', stage = 1 }) {
+  const styles = useStyles(makeStyles);
   const dots = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function TypingDots({ mood = 'smug', stage = 1 }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 4 },
   bubble: {
     flexDirection: 'row',

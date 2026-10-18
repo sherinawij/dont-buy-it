@@ -3,9 +3,11 @@
 import { Pressable, Text } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthUser } from '../auth';
-import { colors, font } from '../theme';
+import { font } from '../theme';
+import { useTheme } from '../useTheme';
 
 export default function AccountButton() {
+  const { colors } = useTheme();
   const { guest } = useAuthUser();
   return (
     <Pressable

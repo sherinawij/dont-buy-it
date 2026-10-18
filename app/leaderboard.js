@@ -9,11 +9,14 @@ import { Button, Card } from '../src/components/ui';
 import { useAuthUser } from '../src/auth';
 import { fetchLeaderboard } from '../src/leaderboard';
 import { formatMoney } from '../src/calc';
-import { colors, font, radius } from '../src/theme';
+import { font, radius } from '../src/theme';
+import { useStyles, useTheme } from '../src/useTheme';
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export default function LeaderboardScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const { guest } = useAuthUser();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -99,7 +102,7 @@ export default function LeaderboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   container: { padding: 20, gap: 10, paddingBottom: 48 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
   body: { fontSize: font.body, color: colors.text, textAlign: 'center', lineHeight: 24 },
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 14,
   },
-  me: { borderColor: colors.primary, borderWidth: 2, backgroundColor: '#F1FAF3' },
+  me: { borderColor: colors.primary, borderWidth: 2, backgroundColor: colors.primarySoft },
   rank: { fontSize: 22, minWidth: 40, textAlign: 'center', fontWeight: '800', color: colors.text },
   name: { fontSize: font.body, fontWeight: '700', color: colors.text },
   muted: { fontSize: font.small, color: colors.muted },

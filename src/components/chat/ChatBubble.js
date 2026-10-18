@@ -3,9 +3,11 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import SproutAvatar from './SproutAvatar';
-import { colors, radius, font } from '../../theme';
+import { radius, font } from '../../theme';
+import { useStyles } from '../../useTheme';
 
 export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
+  const styles = useStyles(makeStyles);
   const isUser = role === 'user';
 
   // Fade + slide up when the bubble first appears.
@@ -19,7 +21,7 @@ export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
   if (isUser) {
     return (
       <Animated.View style={[styles.bubble, styles.user, motion]} accessibilityLabel={`You: ${text}`}>
-        <Text style={[styles.text, { color: '#fff' }]}>{text}</Text>
+        <Text style={[styles.text, styles.userText]}>{text}</Text>
       </Animated.View>
     );
   }
@@ -35,7 +37,7 @@ export default function ChatBubble({ role, text, mood = 'smug', stage = 1 }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   sproutRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginVertical: 4, maxWidth: '92%' },
   bubble: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.md },
   sprout: {
@@ -45,6 +47,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderBottomLeftRadius: 6,
   },
-  user: { alignSelf: 'flex-end', maxWidth: '82%', marginVertical: 4, backgroundColor: colors.primary, borderBottomRightRadius: 6 },
+  user: { alignSelf: 'flex-end', maxWidth: '82%', marginVertical: 4, backgroundColor: colors.userBubble, borderBottomRightRadius: 6 },
+  userText: { color: colors.onUserBubble },
   text: { fontSize: font.body, color: colors.text, lineHeight: 23 },
 });
