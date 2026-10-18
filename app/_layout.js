@@ -1,5 +1,6 @@
-// Root layout: signs the user in anonymously, then shows the screen stack.
-// No login screens — Firebase gives every phone its own private, anonymous account.
+// Root layout: makes sure someone is signed in, then shows the screen stack.
+// Everyone starts as a private anonymous GUEST, so the app works with no login screens.
+// Optional accounts (for friends + leaderboard) live in src/auth.js and app/auth.js.
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
@@ -7,10 +8,12 @@ import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth, firebaseConfigured } from '../src/firebase';
 import { ensureUserDoc } from '../src/db';
+import AccountButton from '../src/components/AccountButton';
 import { colors, font } from '../src/theme';
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
+  // The signed-in user's id. null while signing in (or between accounts).
+  const [uid, setUid] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -20,11 +23,12 @@ export default function RootLayout() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (!user) {
-          await signInAnonymously(auth); // triggers this listener again with the new user
+          setUid(null); // unmount screens so nothing keeps listening to the old account
+          await signInAnonymously(auth); // triggers this listener again with the new guest
           return;
         }
         await ensureUserDoc();
-        setReady(true);
+        setUid(user.uid);
       } catch (e) {
         setError(e.message);
       }
@@ -32,7 +36,7 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  if (!firebaseConfigured || error || !ready) {
+  if (!firebaseConfigured || error || !uid) {
     return (
       <View style={styles.center}>
         {!firebaseConfigured ? (
@@ -52,7 +56,10 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="dark" />
+      {/* key={uid}: switching accounts remounts every screen, so no data from the
+          previous account (catalog, Sprout, wins) can linger on screen. */}
       <Stack
+        key={uid}
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerShadowVisible: false,
@@ -61,13 +68,15 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: "Don't Buy It!" }} />
+        <Stack.Screen name="index" options={{ title: "Don't Buy It!", headerRight: () => <AccountButton /> }} />
         <Stack.Screen name="add" options={{ title: 'Something new?' }} />
         <Stack.Screen name="debate/[id]" options={{ title: 'Sprout vs. You' }} />
         <Stack.Screen name="summary" options={{ title: 'Your week' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="achievements" options={{ title: 'Your wins' }} />
         <Stack.Screen name="achievement/[key]" options={{ title: 'Share your win' }} />
+        <Stack.Screen name="auth" options={{ title: 'Your account' }} />
+        <Stack.Screen name="profile" options={{ title: 'Profile' }} />
       </Stack>
     </>
   );

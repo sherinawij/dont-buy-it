@@ -1,10 +1,59 @@
 rules_version = '2';
 
-// Each anonymous user can only read and write their own data under users/{uid}.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    // Social features need a real account (email/password), not an anonymous guest.
+    function registered() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function isUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // ---------- Private data (unchanged) ----------
+    // Each user can only read and write their own data under users/{uid}: settings, items, debates.
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isUser(userId);
+    }
+
+    // ---------- Public profiles ----------
+    // Only a username and display name: no email, no items, no money. Readable by other accounts
+    // so they can find friends. Each user writes only their own, and only with a username they hold.
+    match /profiles/{userId} {
+      allow read: if registered();
+      allow create, update: if registered() && isUser(userId) && validProfile()
+        && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.usernameLower)).data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    function validProfile() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && d.username is string && d.usernameLower is string && d.displayName is string
+        && d.usernameLower.matches('^[a-z0-9_]{3,20}$')
+        && d.username.lower() == d.usernameLower
+        && d.displayName.size() >= 1 && d.displayName.size() <= 40;
+    }
+
+    // ---------- Username registry: usernames/{lowercase name} → { uid } ----------
+    // One doc per name makes usernames unique regardless of capitalisation.
+    // A name can only be claimed together with the claimer's profile (same batch), so nobody can
+    // hoard names; it can only be released by its holder once their profile has moved off it.
+    match /usernames/{name} {
+      allow read: if registered();
+      allow create: if registered()
+        && name.matches('^[a-z0-9_]{3,20}$')
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.usernameLower == name;
+      allow delete: if registered()
+        && resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.usernameLower != name;
+      allow update: if false;
     }
   }
 }
